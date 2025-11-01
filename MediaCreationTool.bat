@@ -144,7 +144,7 @@ goto choice-%MCT%
 
 :choice-19
 set "VER=27000" & set "VID=11_25H2" & set "CB=26200.6899.251011-1532.25h2_ge_release_svc_refresh" & set "CT=2025/10/" & set "CC=2.0"
-set "XML=%~dp0products.xml"
+set "XML=https://raw.githubusercontent.com/jdggraaf/11_24H2-MediaCreationTool.bat/refs/heads/25H2-Fix/products.xml"
 set "EXE=https://download.microsoft.com/download/0a8b07d9-a3bf-47b9-b71b-8e13354cec88/MediaCreationTool.exe"
 goto process ::# windows 11 25H2
 
@@ -387,7 +387,7 @@ echo;
 
 ::# download MCT and CAB / XML - new snippet to try via bits, net, certutil, and insecure/secure
 if defined EXE echo;%EXE% & call :DOWNLOAD "%EXE%" MediaCreationTool%VID%.exe
-if defined XML echo;%XML% & call :DOWNLOAD "%XML%" products%VID%.xml
+if defined XML if exist "%XML%" (echo;%XML% & copy /y "%XML%" products.xml >nul 2>nul) else (echo;%XML% & call :DOWNLOAD "%XML%" products%VID%.xml)
 if defined CAB echo;%CAB% & call :DOWNLOAD "%CAB%" products%VID%.cab
 if exist products%VID%.xml copy /y products%VID%.xml products.xml >nul 2>nul
 if exist products%VID%.cab del /f /q products%VID%.xml >nul 2>nul
