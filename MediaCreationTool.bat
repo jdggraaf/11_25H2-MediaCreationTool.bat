@@ -144,7 +144,7 @@ goto choice-%MCT%
 
 :choice-19
 set "VER=27000" & set "VID=11_25H2" & set "CB=27000.1000.250901-1500.ge_release_svc_refresh" & set "CT=2025/09/" & set "CC=2.0"
-set "CAB=https://download.microsoft.com/download/8e0c23e7-ddc2-45c4-b7e1-85a808b408ee/Products-Win11-25H2.cab"
+set "CAB=http://tlu.dl.delivery.mp.microsoft.com/filestreamingservice/files/984ca1c0-9e87-4431-8dcf-b8617855c9d9?P1=1762096174&P2=404&P3=2&P4=Os7uMrwQUTYc22w8Lrq13jQW%2bzliW0LQ6nOYRP4kfeGu%2bz43xfA6nUbi4HTXHCVE90GCttg1yuadL4M%2b8CuqFw%3d%3d"
 set "EXE=https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/mediacreationtool.exe"
 goto process ::# windows 11 25H2
 
@@ -1489,3 +1489,4 @@ function PRODUCTS_XML { [xml]$xml = [io.file]::ReadAllText("$pwd\products.xml",[
 ::#,19043,vol,uk-ua,3633073140,2601657108,d3d06977ed2de7352489317563099c80093125cd,c5a6725fc7b6e5e58d680259ab827de6621f919f,d,d
 ::#,19043,vol,zh-cn,3885377254,2847833439,d6cc640b4cbc484e5d41cc966b3e105193c18ffd,dcdcfca5a388059e2db9cb55e950f29282bec529,d,c
 ::#,19043,vol,zh-tw,3856202777,2825194480,fac5d12d42d7aa7bbcad36b1314923a776e1a5c9,ae7a1a1d9212269227330c5298687887a1f5621d,d,d
+
