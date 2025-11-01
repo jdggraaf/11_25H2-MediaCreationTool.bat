@@ -143,9 +143,9 @@ if %MCT%0 gtr 1 if %PRE%0 lss 1 goto choice-0 = cancel
 goto choice-%MCT%
 
 :choice-19
-set "VER=27000" & set "VID=11_25H2" & set "CB=27000.1000.250901-1500.ge_release_svc_refresh" & set "CT=2025/09/" & set "CC=2.0"
-set "CAB=http://tlu.dl.delivery.mp.microsoft.com/filestreamingservice/files/984ca1c0-9e87-4431-8dcf-b8617855c9d9?P1=1762096174&P2=404&P3=2&P4=Os7uMrwQUTYc22w8Lrq13jQW%2bzliW0LQ6nOYRP4kfeGu%2bz43xfA6nUbi4HTXHCVE90GCttg1yuadL4M%2b8CuqFw%3d%3d"
-set "EXE=https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/mediacreationtool.exe"
+set "VER=27000" & set "VID=11_25H2" & set "CB=26200.6899.251011-1532.25h2_ge_release_svc_refresh" & set "CT=2025/10/" & set "CC=2.0"
+set "XML=%~dp0products.xml"
+set "EXE=https://download.microsoft.com/download/0a8b07d9-a3bf-47b9-b71b-8e13354cec88/MediaCreationTool.exe"
 goto process ::# windows 11 25H2
 
 :choice-18
