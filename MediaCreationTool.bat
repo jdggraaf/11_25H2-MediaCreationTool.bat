@@ -375,7 +375,7 @@ if %VER% geq 22000 (set X=11& set VIS=21H2) else (set X=10& set VIS=%VID%)
 if %VER% geq 22621 (set X=11& set VIS=22H2)
 if %VER% geq 22631 (set X=11& set VIS=23H2)
 if %VER% geq 26100 (set X=11& set VIS=24H2)
-if %VER% geq 27000 (set X=11& set VIS=25H2)
+if %VER% geq 26000 (set X=11& set VIS=25H2)
 
 ::# refresh screen
 cls & <"%~f0" (set /p _=&for /l %%s in (1,1,20) do set _=& set/p _=& call echo;%%_%%)
@@ -1489,6 +1489,7 @@ function PRODUCTS_XML { [xml]$xml = [io.file]::ReadAllText("$pwd\products.xml",[
 ::#,19043,vol,uk-ua,3633073140,2601657108,d3d06977ed2de7352489317563099c80093125cd,c5a6725fc7b6e5e58d680259ab827de6621f919f,d,d
 ::#,19043,vol,zh-cn,3885377254,2847833439,d6cc640b4cbc484e5d41cc966b3e105193c18ffd,dcdcfca5a388059e2db9cb55e950f29282bec529,d,c
 ::#,19043,vol,zh-tw,3856202777,2825194480,fac5d12d42d7aa7bbcad36b1314923a776e1a5c9,ae7a1a1d9212269227330c5298687887a1f5621d,d,d
+
 
 
 
