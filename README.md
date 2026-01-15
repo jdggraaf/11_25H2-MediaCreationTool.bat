@@ -3,6 +3,8 @@ Not just an Universal MediaCreationTool wrapper script with ingenious support fo
 A powerful yet simple windows 10 / 11 deployment automation tool as well!  
 *If you had no success launching the script so far, this latest version will work*  
 
+**25H2 CAB Fetch** — Dynamically fetch 25H2 media metadata directly from Microsoft's Update Metadata Service, with automatic country/language detection via `LANGCODE`
+
 Presets  
 -------  
 1 ***Auto Upgrade*** with detected media, script assists setupprep for upgrading directly  
@@ -33,6 +35,14 @@ Presets
 > _- write `AutoUnattend.xml` in boot.wim to enable local account on Windows 11 Home (11 only)_  
 > _- patch `winsetup.dll` in boot.wim to remove windows 11 setup checks when booting from media (11 only)_  
 > _- can disable by adding `def` to script name for a default, untouched MCT media_  
+
+Features  
+--------
+- **Automatic 25H2 media fetch** from Microsoft Update Metadata Service (FE3)
+  - Queries with device attributes (build, architecture, country, edition, etc.)
+  - Resolves signed URL and downloads 25H2 products.cab
+  - Respects `LANGCODE` environment variable for country/region detection (e.g., `nl-NL` → `IsoCountryShortCode=NL`)
+  - Fallback to host system culture if `LANGCODE` not set
 
 Simple deployment  
 -----------------   

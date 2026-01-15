@@ -2,10 +2,12 @@
 :Universal MCT wrapper script for all Windows 10/11 versions from 1507 to 25H2!
 :: Nothing but Microsoft-hosted source links and no third-party tools; script just configures an xml and starts MCT
 :: Ingenious support for business editions (Enterprise / VL) selecting language, x86, x64 or AiO inside the MCT GUI
-:: Changelog: 2025.06.26 stable
+:: 25H2 CAB dynamically fetched from Microsoft Update Metadata Service with LANGCODE support
+:: Changelog: 2026.01.15 stable
+:: - 25H2 dynamic CAB fetch from FE3 (respects LANGCODE for country detection)
 :: - all issues ironed out; upgrade keeping files from Eval editions too; pickup $ISO$ dir content to add on media
 :: - DU in 11: auto installs 22000.556 atm; older skip_11_checks, without Server label; Home offline local account
-:: on upgrade: latest build, on offline install: 11 25H2 27000.1000 / 11 24H2 26100.4349 / 11 23H2 22631.2861 / 11 22H2 22621.1702 / 11 21H2 22000.318 / 22H2 19045.3803 / 21H2 19044.1288 / 21H1 19043.1348 / 20H2 19042.1052
+:: on upgrade: latest build, on offline install: 11 25H2 26200.6899 / 11 24H2 26100.4349 / 11 23H2 22631.2861 / 11 22H2 22621.1702 / 11 21H2 22000.318 / 22H2 19045.3803 / 21H2 19044.1288 / 21H1 19043.1348 / 20H2 19042.1052
 
 ::# uncomment to skip GUI dialog for MCT choice: 1507 to 11 25H2 - or rename script: "11_25H2 MediaCreationTool.bat"
 rem set MCT=2509
@@ -49,7 +51,7 @@ set /a INSERT_BUSINESS=1
 
 ::# MCT Version choice dialog items and default-index [11_25H2]
 set VERSIONS=1507,1511,1607,1703,1709,1803,1809,1903,1909,20H1,20H2,21H1,21H2,22H2,11_21H2,11_22H2,11_23H2,11_24H2,11_25H2
-set /a dV=18
+set /a dV=19
 
 ::# MCT Preset choice dialog items and default-index [Select in MCT]
 set PRESETS=^&Auto Upgrade,Auto ^&ISO,Auto ^&USB,^&Select,MCT ^&Defaults
@@ -144,7 +146,7 @@ goto choice-%MCT%
 
 :choice-19
 set "VER=26200" & set "VID=11_25H2" & set "CB=26200.6899.251011-1532.25h2_ge_release_svc_refresh" & set "CT=2025/10/" & set "CC=2.1"
-set "CAB=https://github.com/jdggraaf/11_24H2-MediaCreationTool.bat/raw/refs/heads/25H2-Fix/25H2.cab"
+set "CAB=FETCH_25H2"
 set "EXE=https://download.microsoft.com/download/0a8b07d9-a3bf-47b9-b71b-8e13354cec88/MediaCreationTool.exe"
 goto process ::# windows 11 25H2
 
@@ -375,7 +377,7 @@ if %VER% geq 22000 (set X=11& set VIS=21H2) else (set X=10& set VIS=%VID%)
 if %VER% geq 22621 (set X=11& set VIS=22H2)
 if %VER% geq 22631 (set X=11& set VIS=23H2)
 if %VER% geq 26100 (set X=11& set VIS=24H2)
-if %VER% geq 26000 (set X=11& set VIS=25H2)
+if %VER% geq 26200 (set X=11& set VIS=25H2)
 
 ::# refresh screen
 cls & <"%~f0" (set /p _=&for /l %%s in (1,1,20) do set _=& set/p _=& call echo;%%_%%)
@@ -388,7 +390,9 @@ echo;
 ::# download MCT and CAB / XML - new snippet to try via bits, net, certutil, and insecure/secure
 if defined EXE echo;%EXE% & call :DOWNLOAD "%EXE%" MediaCreationTool%VID%.exe
 if defined XML if exist "%XML%" (echo;%XML% & copy /y "%XML%" products.xml >nul 2>nul) else (echo;%XML% & call :DOWNLOAD "%XML%" products%VID%.xml)
-if defined CAB echo;%CAB% & call :DOWNLOAD "%CAB%" products%VID%.cab
+if defined CAB (
+  if "%CAB%" equ "FETCH_25H2" (echo;Fetching 25H2 CAB from Microsoft & call :FETCH_25H2_CAB) else (echo;%CAB% & call :DOWNLOAD "%CAB%" products%VID%.cab)
+)
 if exist products%VID%.xml copy /y products%VID%.xml products.xml >nul 2>nul
 if exist products%VID%.cab del /f /q products%VID%.xml >nul 2>nul
 if exist products%VID%.cab expand.exe -R products%VID%.cab -F:* . >nul 2>nul
@@ -904,6 +908,128 @@ function MakeISO ($dir,$iso,$label='DVD_ROM') {if (!(test-path -Path $dir -patht
  $obj = $fsi.CreateResultImage(); $ret = [dir2iso]::Create($iso,[ref]$obj.ImageStream,$obj.BlockSize,$obj.TotalBlocks) }
  [GC]::Collect(); return $ret
 } #:MakeISO:#  export directory as (bootable) udf iso - lean and mean snippet by AveYo, 2022.03.15
+
+::--------------------------------------------------------------------------------------------------------------------------------
+#:FETCH_25H2_CAB:#  [INTERNAL] Fetch 25H2 CAB from Microsoft Update Metadata Service
+set ^ #=;$f0=[io.file]::ReadAllText($env:0); $0=($f0-split '#\:FETCH_25H2_CAB\:')[1]; $1=$env:1-replace'([`@$])','`$1'; iex($0+$1)
+set ^ #=& set "0=%~f0"& set 1=;FETCH_25H2_CAB %*& powershell -nop -c "%#%"& exit /b %errorcode%
+function FETCH_25H2_CAB {
+  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
+  $uri = "https://fe3.delivery.mp.microsoft.com/UpdateMetadataService/updates/search/v1/bydeviceinfo"
+  $output = "$pwd\products$env:VID.cab"
+  $ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MediaCreationTool/10.0"
+  try {
+    $cv = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+    $build = $cv.CurrentBuild
+    $ubr = $cv.UBR
+    $editionId = $cv.EditionID
+    $arch = "AMD64"
+    # Derive country from LANGCODE or MEDIA_LANGCODE; fallback to host culture
+    $lc = $env:LANGCODE; if (-not $lc -or [string]::IsNullOrWhiteSpace($lc)) { $lc = $env:MEDIA_LANGCODE }
+    if (-not $lc -or [string]::IsNullOrWhiteSpace($lc)) { $lc = (Get-Culture).Name }
+    try {
+      $parts = $lc -split '-';
+      if ($parts.Length -ge 2 -and $parts[1].Length -ge 2) { $country = $parts[1].Substring(0,2).ToUpperInvariant() }
+      else { $country = ([System.Globalization.RegionInfo] $lc).TwoLetterISORegionName }
+    } catch { $country = ([System.Globalization.RegionInfo] (Get-Culture).Name).TwoLetterISORegionName }
+    # OSVersion/LcuVersion/MediaVersion set to known-good values for 26100 target
+    
+    $targetVersion = "26100.0.0.0"
+    $branch = "br_release"
+    $previewBuilds = 1
+    $attrDataVer = 338
+    $lcuVersion = "10.0.28000.1340"
+    $mediaVersion = "10.0.28000.1340"
+    
+    $deviceAttrs = @(
+      "MediaBranch=$branch"
+      "App=Setup360"
+      "LCUVersion=$lcuVersion"
+      "OfflineAttributesOnly=0"
+      "MediaVersion=$mediaVersion"
+      "AppVer=10.0"
+      "PreviewBuilds=$previewBuilds"
+      "CompositionEditionId=Enterprise"
+      "CurrentBranch=$branch"
+      "OSArchitecture=$arch"
+      "InstallationType=Client"
+      "FlightingBranchName=CanaryChannel"
+      "DUInternal=0"
+      "FlightRing=External"
+      "BuildFlighting=1"
+      "HotPatchEligible=0"
+      "OSSKUId=48"
+      "IsoCountryShortCode=$country"
+      "OSVersion=10.0.26100.1"
+      "AttrDataVer=$attrDataVer"
+      "EditionId=Professional"
+      "DUScan=1"
+    ) -join ';'
+    
+    $products = "PN=Windows.Products.Cab.amd64&V=$targetVersion"
+    $body = @{
+      Products = $products
+      DeviceAttributes = $deviceAttrs
+    } | ConvertTo-Json -Compress
+    
+    $headers = @{
+      "Content-Type" = "application/json"
+      "Accept" = "*/*"
+      "User-Agent" = $ua
+    }
+    
+    write-host "Querying Microsoft Update Metadata Service for 25H2 CAB..."
+    $response = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $body -ErrorAction Stop -TimeoutSec 30
+    
+    $url = $null
+    if ($response -and ($response -is [array])) {
+      if ($response.Count -gt 0 -and $response[0].FileLocations) {
+        $url = $response[0].FileLocations[0].Url
+      }
+    } elseif ($response -and ($response -is [object])) {
+      if ($response.FileLocations) {
+        $url = $response.FileLocations[0].Url
+      } elseif ($response.Updates -and $response.Updates.Count -gt 0) {
+        if ($response.Updates[0].FileLocations) {
+          $url = $response.Updates[0].FileLocations[0].Url
+        }
+      }
+    }
+    
+    if ($url) {
+      write-host "Resolved signed URL from Microsoft Update Service"
+    } else {
+      write-host -fore Yellow "API returned empty response"
+      return 1
+    }
+    
+    write-host "Downloading 25H2 CAB from: $($url.Substring(0, [Math]::Min(80, $url.Length)))..."
+    try {
+      Invoke-WebRequest -Uri $url -Headers @{ "User-Agent"=$ua; "Accept"="*/*" } -OutFile $output -ErrorAction Stop
+      $size = (Get-Item $output).Length
+      write-host "Downloaded CAB to $output (Size: $size bytes)"
+    } catch {
+      $handler = [System.Net.Http.HttpClientHandler]::new()
+      $handler.AllowAutoRedirect = $true
+      $handler.ServerCertificateCustomValidationCallback = { param($msg,$cert,$chain,$errors) $true }
+      $client = [System.Net.Http.HttpClient]::new($handler)
+      $client.DefaultRequestHeaders.UserAgent.ParseAdd($ua)
+      $client.DefaultRequestHeaders.Accept.ParseAdd("*/*")
+      $client.Timeout = [timespan]::FromSeconds(300)
+      $bytes = $client.GetByteArrayAsync($url).Result
+      [System.IO.File]::WriteAllBytes($output, $bytes)
+      $size = $bytes.Length
+      write-host "Downloaded CAB to $output (Size: $([math]::Round($size/1MB, 2)) MB)"
+    }
+
+    
+    return 0
+  } catch {
+    write-host -fore Red "Error: $_"
+    write-host -fore Yellow "Fallback: Unable to fetch 25H2 CAB"
+    return 1
+  }
+} #:FETCH_25H2_CAB:#
 
 ::--------------------------------------------------------------------------------------------------------------------------------
 #:DOWNLOAD:# [PARAMS] "url" "file" [optional]"path"

@@ -1,3 +1,7 @@
 dev/
 $ISO$/
 *.iso
+.github/
+node_modules/
+memory-bank/
+*.json
