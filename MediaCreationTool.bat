@@ -3,7 +3,9 @@
 :: Nothing but Microsoft-hosted source links and no third-party tools; script just configures an xml and starts MCT
 :: Ingenious support for business editions (Enterprise / VL) selecting language, x86, x64 or AiO inside the MCT GUI
 :: 25H2 CAB dynamically fetched from Microsoft Update Metadata Service with LANGCODE support
+:: TPM Bypass Enhancements with HwReqChk, LabConfig, and MoSetup registry configurations
 :: Changelog: 2026.01.15 stable
+:: - TPM Bypass Enhancements: HwReqChk, LabConfig (TPM/SecureBoot/RAM/CPU/Storage checks), MoSetup AllowUpgradesWithUnsupportedTPMorCPU
 :: - 25H2 dynamic CAB fetch from FE3 (respects LANGCODE for country detection)
 :: - all issues ironed out; upgrade keeping files from Eval editions too; pickup $ISO$ dir content to add on media
 :: - DU in 11: auto installs 22000.556 atm; older skip_11_checks, without Server label; Home offline local account
@@ -691,6 +693,7 @@ pushd "%dir%sources" || (echo "%dir%sources" not found! script should be run fro
 ::# start sources\setup if under winpe (when booted from media) [Shift] + [F10]: c:\auto or d:\auto or e:\auto etc.
 reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\WinPE">nul 2>nul && (
  for %%s in (sCPU sRAM sSecureBoot sStorage sTPM) do reg add HKLM\SYSTEM\Setup\LabConfig /f /v Bypas%%sCheck /d 1 /t reg_dword
+ reg add HKLM\SYSTEM\Setup /f /v HwReqChk /d 1 /t reg_dword
  start "WinPE" sources\setup.exe & exit /b 
 ) 
 
@@ -855,6 +858,30 @@ function WIM_INFO ($file = 'install.esd', $index = 0, $out = 0) { :info while ($
       </RunSynchronousCommand>
       <RunSynchronousCommand wcm:action="add"><Order>3</Order>
         <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate /v TargetReleaseVersionInfo /d 25H1 /f</Path>
+      </RunSynchronousCommand>
+      <!-- TPM and hardware requirement bypass for WinPE and upgrade scenarios -->
+      <RunSynchronousCommand wcm:action="add"><Order>4</Order>
+        <Path>reg add HKLM\SYSTEM\Setup /v HwReqChk /t reg_dword /d 1 /f</Path>
+      </RunSynchronousCommand>
+      <!-- LabConfig registry bypasses for hardware checks -->
+      <RunSynchronousCommand wcm:action="add"><Order>5</Order>
+        <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassTPMCheck /t reg_dword /d 1 /f</Path>
+      </RunSynchronousCommand>
+      <RunSynchronousCommand wcm:action="add"><Order>6</Order>
+        <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassSecureBootCheck /t reg_dword /d 1 /f</Path>
+      </RunSynchronousCommand>
+      <RunSynchronousCommand wcm:action="add"><Order>7</Order>
+        <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassRAMCheck /t reg_dword /d 1 /f</Path>
+      </RunSynchronousCommand>
+      <RunSynchronousCommand wcm:action="add"><Order>8</Order>
+        <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassCPUCheck /t reg_dword /d 1 /f</Path>
+      </RunSynchronousCommand>
+      <RunSynchronousCommand wcm:action="add"><Order>9</Order>
+        <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassStorageCheck /t reg_dword /d 1 /f</Path>
+      </RunSynchronousCommand>
+      <!-- MoSetup bypass for upgrade scenarios with unsupported TPM or CPU -->
+      <RunSynchronousCommand wcm:action="add"><Order>10</Order>
+        <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Setup\MoSetup /v AllowUpgradesWithUnsupportedTPMorCPU /t reg_dword /d 1 /f</Path>
       </RunSynchronousCommand>
     </RunSynchronous>
   </component></settings>

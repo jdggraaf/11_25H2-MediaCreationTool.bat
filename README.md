@@ -5,6 +5,12 @@ A powerful yet simple windows 10 / 11 deployment automation tool as well!
 
 **25H2 CAB Fetch** — Dynamically fetch 25H2 media metadata directly from Microsoft's Update Metadata Service, with automatic country/language detection via `LANGCODE`
 
+**TPM Bypass Enhancements** — Comprehensive hardware requirement spoofing for WinPE and upgrade scenarios:
+- `HwReqChk` registry key for spoofing hardware capabilities
+- LabConfig registry bypasses: `BypassTPMCheck`, `BypassSecureBootCheck`, `BypassRAMCheck`, `BypassCPUCheck`, `BypassStorageCheck`
+- `AllowUpgradesWithUnsupportedTPMorCPU` for MoSetup upgrade scenarios
+- Maintains existing appraiserres.dll and winsetup.dll bypass mechanisms
+
 Presets  
 -------  
 1 ***Auto Upgrade*** with detected media, script assists setupprep for upgrading directly  
@@ -43,6 +49,12 @@ Features
   - Resolves signed URL and downloads 25H2 products.cab
   - Respects `LANGCODE` environment variable for country/region detection (e.g., `nl-NL` → `IsoCountryShortCode=NL`)
   - Fallback to host system culture if `LANGCODE` not set
+- **TPM Bypass Enhancements** for unsupported hardware scenarios
+  - `HwReqChk` registry key spoofs hardware capabilities in WinPE and upgrade scenarios
+  - LabConfig registry bypasses for: TPM, SecureBoot, RAM, CPU, Storage checks
+  - `AllowUpgradesWithUnsupportedTPMorCPU` for MoSetup-based upgrade scenarios
+  - Maintains existing `appraiserres.dll` and `winsetup.dll` bypass mechanisms
+  - Comprehensive registry configuration in AutoUnattend.xml for automatic application during setup
 
 Simple deployment  
 -----------------   
