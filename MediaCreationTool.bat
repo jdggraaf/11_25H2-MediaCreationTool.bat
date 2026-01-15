@@ -396,7 +396,7 @@ if defined CAB (
   if "%CAB%" equ "FETCH_25H2" (echo;Fetching 25H2 CAB from Microsoft & call :FETCH_25H2_CAB) else (echo;%CAB% & call :DOWNLOAD "%CAB%" products%VID%.cab)
 )
 if exist products%VID%.xml copy /y products%VID%.xml products.xml >nul 2>nul
-if exist products%VID%.cab del /f /q products%VID%.xml >nul 2>nul
+if exist products%VID%.cab del /f /q products%VID%.cab >nul 2>nul
 if exist products%VID%.cab expand.exe -R products%VID%.cab -F:* . >nul 2>nul
 set "/hint=Check urls in browser | del ESD dir | use powershell v3.0+ | unblock powershell | enable BITS serv"
 echo;& set err=& for %%s in (products.xml MediaCreationTool%VID%.exe) do if not exist %%s set err=1
@@ -904,10 +904,6 @@ function WIM_INFO ($file = 'install.esd', $index = 0, $out = 0) { :info while ($
 </unattend>
 
 '@; [io.file]::WriteAllText('AutoUnattend.xml', $text); #:generate_AutoUnattend_xml - to be used via boot.wim on 11
-
-::--------------------------------------------------------------------------------------------------------------------------------
-:reg_query [USAGE] call :reg_query "HKCU\Volatile Environment" Value variable
-(for /f "tokens=2*" %%R in ('reg query "%~1" /v "%~2" /se "," 2^>nul') do set "%~3=%%S")& exit /b
 
 ::--------------------------------------------------------------------------------------------------------------------------------
 #:MakeISO:#  [PARAMS] "directory" "file.iso" [optional]"label"
