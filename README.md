@@ -3,7 +3,7 @@ Not just an Universal MediaCreationTool wrapper script with ingenious support fo
 A powerful yet simple windows 10 / 11 deployment automation tool as well!  
 *If you had no success launching the script so far, this latest version will work*  
 
-**25H2 CAB Fetch** — Dynamically fetch 25H2 media metadata directly from Microsoft's Update Metadata Service, with automatic country/language detection via `LANGCODE`
+**25H2 CAB Fetch** — fetches the 25H2 media catalog directly from Microsoft's Update Metadata Service (FE3), verifies it against the SHA256 digest Microsoft returns, and auto-detects country/language via `LANGCODE`. The version list runs 1703 to 11 25H2 (14 versions); FE3 details in `docs/FE3-endpoint.md`
 
 **Requirement bypass (checked September 2026)** — the same mechanisms Rufus 4.6+ uses:
 - clean install from the ISO/USB: LabConfig `BypassTPMCheck` `BypassSecureBootCheck` `BypassRAMCheck` `BypassCPUCheck` `BypassStorageCheck` set in the windowsPE pass of the boot.wim unattend
@@ -50,23 +50,23 @@ Presets
 > _if you previously used $OEM$ content, must now place it in `$ISO$\sources\$OEM$\`_  
 > _- write `sources\PID.txt` to preselect edition at media boot or within windows (if configured)_  
 > _- write `sources\EI.cfg` to prevent product key prompt on Windows 11 consumer media (11 only)_  
-> _- write `AutoUnattend.xml` in boot.wim to enable local account on Windows 11 Home (11 only)_  
-> _- patch `winsetup.dll` in boot.wim to remove windows 11 setup checks when booting from media (11 only)_  
+> _- write `AutoUnattend.xml` in boot.wim: local account on 11 Home, plus LabConfig bypass in the windowsPE pass (11 only)_  
+> _- 21H2 - 23H2 media also get a 0-byte `appraiserres.dll`; 24H2+ ignores that, so the boot.wim unattend does the work_  
 > _- can disable by adding `def` to script name for a default, untouched MCT media_  
 
 Features  
 --------
 - **Automatic 25H2 media fetch** from Microsoft Update Metadata Service (FE3)
   - Queries with device attributes (build, architecture, country, edition, etc.)
-  - Resolves signed URL and downloads 25H2 products.cab
+  - Resolves the signed URL, downloads products.cab, and verifies it against the returned SHA256 digest
+  - Query version floor derives from the target build (`CB`); the catalog returned is the current one for that context
   - Respects `LANGCODE` environment variable for country/region detection (e.g., `nl-NL` → `IsoCountryShortCode=NL`)
   - Fallback to host system culture if `LANGCODE` not set
-- **TPM Bypass Enhancements** for unsupported hardware scenarios
-  - `HwReqChk` registry key spoofs hardware capabilities in WinPE and upgrade scenarios
-  - LabConfig registry bypasses for: TPM, SecureBoot, RAM, CPU, Storage checks
-  - `AllowUpgradesWithUnsupportedTPMorCPU` for MoSetup-based upgrade scenarios
-  - Maintains existing `appraiserres.dll` and `winsetup.dll` bypass mechanisms
-  - Comprehensive registry configuration in AutoUnattend.xml for automatic application during setup
+- **Requirement bypass, refreshed for 24H2 / 25H2** (the mechanisms Rufus 4.6+ uses)
+  - clean install: LabConfig `BypassTPMCheck` / `BypassSecureBootCheck` / `BypassRAMCheck` / `BypassCPUCheck` / `BypassStorageCheck` in the **windowsPE** pass of the boot.wim unattend, before setup's compatibility check
+  - in-place upgrade (auto.cmd, and `bypass11/Skip_TPM_Check` for Windows Update): `AllowUpgradesWithUnsupportedTPMorCPU`, the `HwReqChkVars` answers (TPM 2, Secure Boot, 8 GB) and cleared AppCompatFlags markers - keeps files and apps
+  - 21H2 - 23H2 media keep the classic 0-byte `appraiserres.dll` (24H2+ ignores it)
+  - no bypass exists for CPUs without SSE4.2 / POPCNT (a hard requirement since 24H2)
 
 Simple deployment  
 -----------------   
