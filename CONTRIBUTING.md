@@ -30,8 +30,26 @@ It must print `ALL CHECKS PASSED` before you're done.
 
 If PowerShell 7 (`pwsh`) is installed or you point `PWSH=/path/to/pwsh` at one, the
 script also parses every `#:NAME:#` PowerShell snippet exactly as the batch bootstrap
-extracts it, so syntax errors in the embedded PowerShell are caught on Linux/macOS too.
-Behaviour (WinForms dialogs, MCT, setup) can only be tested on Windows.
+extracts it, and then runs the behavioural suites in `tests/func-mock/`, which execute the
+real functions against mocked dependencies:
+
+| suite | function under test | what is mocked |
+| --- | --- | --- |
+| `download.ps1` | `DOWNLOAD` | BITS, `Invoke-WebRequest`, `bitsadmin`, `WebClient` |
+| `wim-info.ps1` | `WIM_INFO` | a synthetic `.esd` built to the layout it scans |
+| `fetch-cab.ps1` | `FETCH_25H2_CAB` | registry, metadata service, CDN |
+| `products-xml.ps1` | `PRODUCTS_XML` | synthetic catalogs on disk |
+| `choices.ps1` | `CHOICES`, `CHOICES2` | the WinForms mock, with queued button presses |
+
+With Wine installed, `tests/batch-func-check.sh` additionally drives the batch-side routines
+under a real `cmd.exe`: every `:choice-N` version branch, `:save_ini`, `:reg_query` and
+`:rename`. Pieces are lifted verbatim from the script rather than retyped.
+
+`tests/link-check.sh` probes every URL in the script and in the docs. On a network that
+blocks outbound traffic it reports those as `BLOCKED` rather than failing; `STRICT=1` makes
+them failures.
+
+MCT and Windows setup themselves can still only be exercised on Windows.
 
 ## `:choice-N` / `VERSIONS` mapping
 

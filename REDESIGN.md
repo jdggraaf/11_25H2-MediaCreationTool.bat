@@ -98,9 +98,18 @@ Loaded from the script folder before argument parsing (commandline and script na
 - `tests/dialog-mock/run.ps1` (any OS with `pwsh`): executes the real `SETUP_GUI` function against a mock WinForms layer.
   12 scenarios pass: defaults, cancel, preselection from env/ini, list + radio + key + remember, greying-out for Select and
   MCT Defaults, key and language validation, every control inside the client area, list labels.
+- `tests/func-mock/*.ps1` (any OS with `pwsh`): the remaining PowerShell functions run against mocked dependencies.
+  109 assertions pass - `DOWNLOAD` (9: fallback order, https-first, short-circuits), `WIM_INFO` (14: all four output
+  modes, arch table), `FETCH_25H2_CAB` (29: request shape, country/version derivation, response shapes, SHA256 check),
+  `PRODUCTS_XML` (31: catalog wrapping, EULAs, labels, pruning, unhiding, edition clones), `CHOICES`/`CHOICES2` (26:
+  index maths, cancel, loop-back).
+- `tests/batch-func-check.sh` (Linux with Wine): every `:choice-N` branch (all 14 agree with the version alias table),
+  `:save_ini`, `:reg_query` (against a stub `reg`, since Wine's own has no `/se`) and `:rename`.
 - `tests/wine-cmd-check.sh` (Linux with Wine): the ini loader, version resync, elevation token builder, dynamic-update
   substitution and the `help` block run under Wine's `cmd.exe` and pass. Wine's cmd cannot parse `&` inside a for-body or
   after `set /a` (idioms real cmd handles and this script has used for years), so the full script cannot run there.
+  It also lacks indirect delayed expansion (`!%%v!`), so the `_undo` copies in `:rename` are skipped there.
+  Note a generated test file must not be called `rename.bat`: cmd resolves that to the internal RENAME command.
 - Rendering the dialog under Wine was attempted with PowerShell 7.0/7.2/7.4 Windows builds; all crash at startup on
   64-bit-only Wine 9.0 (WineHQ bug 52396, needs wine-staging or wine32).
 - Still required on Windows before release: open the window on Windows 10 22H2 and 11 25H2 hosts, run each preset once,

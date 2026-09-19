@@ -65,12 +65,26 @@ if [ -n "$PWSH" ]; then
   # 9. Run the real SETUP_GUI function against a mock WinForms layer: selection maths, validation, greying-out, output line.
   "$PWSH" -NoProfile -File tests/dialog-mock/run.ps1 MediaCreationTool.bat > /tmp/dialog-mock.out 2>&1 \
     && say "ok   dialog logic ($(grep -c '^ok' /tmp/dialog-mock.out) scenarios)" || { cat /tmp/dialog-mock.out; bad "dialog logic scenarios failed"; }
+  # 9b. Behavioural tests for the remaining PowerShell functions, each driven against mocked dependencies
+  #     (transfers, registry, metadata service, WinForms) so no network or Windows host is needed.
+  for t in download wim-info fetch-cab products-xml choices; do
+    out=$(mktemp)
+    if "$PWSH" -NoProfile -File "tests/func-mock/$t.ps1" > "$out" 2>&1; then
+      say "ok   $t ($(grep -c '^ok' "$out") assertions)"
+    else
+      cat "$out"; bad "$t function tests failed"
+    fi
+    rm -f "$out"
+  done
 else
   say "skip pwsh parse + dialog logic (pwsh not found; set PWSH=/path/to/pwsh)"
 fi
 
 # 10. Batch pieces under Wine cmd.exe when available (best effort).
 bash tests/wine-cmd-check.sh || bad "wine cmd checks failed"
+
+# 11. Batch-side routines (every :choice-N branch, :save_ini, :reg_query, :rename) under Wine cmd.exe.
+bash tests/batch-func-check.sh || bad "batch function checks failed"
 
 [ $fail -eq 0 ] && say "ALL CHECKS PASSED" || say "SOME CHECKS FAILED"
 exit $fail
