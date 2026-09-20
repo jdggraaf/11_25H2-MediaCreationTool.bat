@@ -14,8 +14,10 @@ probe_nr() { curl -sS -o /dev/null -w '%{http_code}' --max-time "$2" -A 'Mozilla
 
 urls() {
   tr -d '\r' < MediaCreationTool.bat | grep -oE 'https?://[A-Za-z0-9./_%?=&:-]+'
-  # markdown link targets and bare urls in the docs
+  # markdown link targets and bare urls in the docs. `inline code` is stripped first: a url quoted
+  # in backticks (e.g. a review note recording what a link used to point at) is evidence, not a link.
   cat README.md CONTRIBUTING.md REVIEW.md REDESIGN.md docs/*.md bypass11/readme.md 2>/dev/null \
+    | sed 's/`[^`]*`//g' \
     | grep -oE 'https?://[A-Za-z0-9./_%?=&:#@~+-]+' | sed 's/[).,]*$//'
 }
 

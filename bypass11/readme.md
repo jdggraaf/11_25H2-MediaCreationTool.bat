@@ -59,5 +59,3 @@ _If you have already connected at OOBE, can try email: `a` password: `a` to swit
 Manage and troubleshoot Windows Update on any windows version and edition  
 -------------------------------------------------------------------------  
 Use [windows_update_refresh.bat](windows_update_refresh.bat) to clear pending updates (including sneaky feature upgrades)  
-Use [windows_drivers_update_toggle.bat](https://pastebin.com/cK8y4YEX) to block driver updates even on Home editions  
-Use [windows_feature_update_toggle.bat](https://pastebin.com/EcLB14hg) to block feature upgrades on 1507 - 21H2 even on Home editions!  
