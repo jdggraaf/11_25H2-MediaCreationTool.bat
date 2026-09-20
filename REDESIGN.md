@@ -82,7 +82,9 @@ Loaded from the script folder before argument parsing (commandline and script na
 
 ## Roadmap (not implemented, in order of value)
 
-1. **Integrity pinning**: per-version SHA256 of `products*.cab/xml` and the MCT exe next to the URL, verified after download.
+1. **Integrity pinning** - mechanism done: `DOWNLOAD` takes an optional sha256 and discards a mismatch (cached copies are
+   re-verified too); each `:choice-N` block may set `CABSHA`. Still to do: populate the 13 values with `tests/pin-hashes.ps1`
+   from a machine that can reach the CDN. The exe is deliberately not pinned - Authenticode already gates it.
 2. **Pre-flight page in the window**: TPM/CPU/SSE4.2/POPCNT/disk space summary with a plain-language verdict before Start.
 3. **Local-account option** (checkbox) that sets `HideOnlineAccountScreens` in the unattend for people who want it,
    independent of the BypassNRO registry trick.

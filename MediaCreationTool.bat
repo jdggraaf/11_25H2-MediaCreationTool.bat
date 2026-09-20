@@ -178,8 +178,11 @@ if "%MCT%%PRE%"=="" call :choices2 MCT "%VERSIONS%" %dV% "MCT Version" PRE "%PRE
 if %MCT%0 lss 1 if %PRE%0 gtr 1 call :choices MCT "%VERSIONS%" %dV% "MCT Version" 11 white 0x005a9e 320
 if %MCT%0 gtr 1 if %PRE%0 lss 1 call :choices PRE "%PRESETS%"  %dP% "MCT Preset"  11 white 0x005a9e 320
 if %MCT%0 gtr 1 if %PRE%0 lss 1 goto choice-0 = cancel
+set "CABSHA="
 goto choice-%MCT%
 
+::# a choice may set CABSHA to the sha256 of its products*.cab - dated catalogs never change once published, so DOWNLOAD
+::# can discard a download that does not match. tests/pin-hashes.ps1 prints the values on a machine that can reach the urls.
 :choice-14
 set "VER=26200" & set "VID=11_25H2" & set "CB=26200.6899.251011-1532.25h2_ge_release_svc_refresh" & set "CT=2025/10/" & set "CC=2.1"
 set "CAB=FETCH_25H2"
@@ -436,7 +439,7 @@ echo;
 if defined EXE echo;%EXE% & call :DOWNLOAD "%EXE%" MediaCreationTool%VID%.exe
 if defined XML if exist "%XML%" (echo;%XML% & copy /y "%XML%" products.xml >nul 2>nul) else (echo;%XML% & call :DOWNLOAD "%XML%" products%VID%.xml)
 if defined CAB (
-  if "%CAB%" equ "FETCH_25H2" (echo;Fetching 25H2 CAB from Microsoft & call :FETCH_25H2_CAB) else (echo;%CAB% & call :DOWNLOAD "%CAB%" products%VID%.cab)
+  if "%CAB%" equ "FETCH_25H2" (echo;Fetching 25H2 CAB from Microsoft & call :FETCH_25H2_CAB) else (echo;%CAB% & call :DOWNLOAD "%CAB%" products%VID%.cab "" "%CABSHA%")
 )
 if exist products%VID%.xml copy /y products%VID%.xml products.xml >nul 2>nul
 if exist products%VID%.cab expand.exe -R products%VID%.cab -F:* . >nul 2>nul
@@ -1115,19 +1118,26 @@ function FETCH_25H2_CAB {
 } #:FETCH_25H2_CAB:#
 
 ::--------------------------------------------------------------------------------------------------------------------------------
-#:DOWNLOAD:# [PARAMS] "url" "file" [optional]"path"
+#:DOWNLOAD:# [PARAMS] "url" "file" [optional]"path" [optional]"sha256" - an empty path means the current directory
 set ^ #=;$f0=[io.file]::ReadAllText($env:0); $0=($f0-split '#\:DOWNLOAD\:' ,3)[1]; $1=$env:1-replace'([`@$])','`$1'; iex($0+$1)
 set ^ #=& set "0=%~f0"& set 1=;DOWNLOAD %*& powershell -nop -c "%#%"& exit /b %errorcode%
-function DOWNLOAD ($u, $f, $p = (get-location).Path) {
+function DOWNLOAD ($u, $f, $p, $sha) {
+  if (-not $p) {$p = (get-location).Path}; $sha = "$sha".Trim().ToLowerInvariant()
   $null = Import-Module BitsTransfer -ea 0; $wc = new-object Net.WebClient; $wc.Headers.Add('user-agent','ipad')
   $file = join-path $p $f; $s = 'https://'; $i = 'http://'; $d = $u.replace($s,'').replace($i,''); $https = $s+$d; $http = $i+$d
+  #:: HAVE = a complete file is present: not empty (a transfer that died mid-way leaves a stub) and, when a sha256 is
+  #:: pinned, matching it. Anything else is deleted so the next mechanism starts clean instead of trusting the stub
+  function HASH ($x) { $h = [Security.Cryptography.SHA256]::Create().ComputeHash([io.file]::ReadAllBytes($x)); ([BitConverter]::ToString($h) -replace '-').ToLowerInvariant() }
+  function HAVE { $fi = [IO.FileInfo]$file; if (-not $fi.Exists) {return $false}
+    if ($fi.Length -gt 0 -and (-not $sha -or (HASH $file) -eq $sha)) {return $true}
+    if ($fi.Length -gt 0) {write-host -fore Red " $f sha256 mismatch - discarding "}; del $file -force -ea 0; return $false }
   foreach ($url in $https, $http) {
-    if (([IO.FileInfo]$file).Exists) {return}; try {Start-BitsTransfer $url $file -ea 1} catch {}
-    if (([IO.FileInfo]$file).Exists) {return}; try {Invoke-WebRequest $url -OutFile $file} catch {} ; $j = (Get-Date).Ticks
-    if (([IO.FileInfo]$file).Exists) {return}; try {$null = bitsadmin /transfer $j /priority foreground $url $file} catch {}
-    if (([IO.FileInfo]$file).Exists) {return}; try {$wc.DownloadFile($url, $file)} catch {}
+    if (HAVE) {return}; try {Start-BitsTransfer $url $file -ea 1} catch {}
+    if (HAVE) {return}; try {Invoke-WebRequest $url -OutFile $file} catch {} ; $j = (Get-Date).Ticks
+    if (HAVE) {return}; try {$null = bitsadmin /transfer $j /priority foreground $url $file} catch {}
+    if (HAVE) {return}; try {$wc.DownloadFile($url, $file)} catch {}
   }
-  if (([IO.FileInfo]$file).Exists) {return}; write-host -fore Yellow " $f download failed "
+  if (HAVE) {return}; write-host -fore Yellow " $f download failed "
 } #:DOWNLOAD:# try download url via bits, net, and http/https - snippet by AveYo, 2021
 
 ::--------------------------------------------------------------------------------------------------------------------------------

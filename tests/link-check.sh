@@ -39,9 +39,10 @@ while read -r u; do
     *)     st=FAIL; fail=1 ;;
   esac
   printf '%-10s %-4s %s\n' "$st" "$code" "$u"
-done < <(urls | grep -vE 'schemas.microsoft.com|w3.org|EULA_MCTool_$|b1.download.windowsupdate.com/$|fe3.delivery|tlu.dl.delivery.mp.microsoft.com/$' | sort -u)
+done < <(urls | grep -vE 'schemas.microsoft.com|w3.org|EULA_MCTool_$|b1.download.windowsupdate.com/$|fe3.delivery|tlu.dl.delivery.mp.microsoft.com/$|forums.mydigitallife.net' | sort -u)
 
 echo "note: fe3.delivery.mp.microsoft.com uses a Microsoft-private CA (trusted by Windows, not by curl) and is not probed"
+echo "note: forums.mydigitallife.net answers 403 to any non-browser client, so it is not probed either (it is fine in a browser)"
 [ "$blocked" -gt 0 ] && echo "note: $blocked url(s) could not be reached from this network (egress blocked), not counted as failures - rerun with STRICT=1 to fail on those"
 [ -n "${STRICT:-}" ] && [ "$blocked" -gt 0 ] && fail=1
 exit $fail

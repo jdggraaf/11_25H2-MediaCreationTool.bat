@@ -49,6 +49,16 @@ under a real `cmd.exe`: every `:choice-N` version branch, `:save_ini`, `:reg_que
 blocks outbound traffic it reports those as `BLOCKED` rather than failing; `STRICT=1` makes
 them failures.
 
+`.github/workflows/tests.yml` runs all of the above on every push and pull request (and the
+link check weekly, because download links rot on their own), so a red check on GitHub is the
+same failure you would see locally.
+
+`tests/pin-hashes.ps1` downloads each static `products*.cab` and prints its sha256 as a
+`set "CABSHA=..."` line to paste into that version's `:choice-N` block. Run it on a machine that
+can reach `download.microsoft.com`; `-ListOnly` shows what it would fetch. Only the dated
+catalogs are pinned - the MCT exe is already gated by its Authenticode signature, and pinning it
+would break every time Microsoft re-signs.
+
 MCT and Windows setup themselves can still only be exercised on Windows.
 
 ## `:choice-N` / `VERSIONS` mapping

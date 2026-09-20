@@ -35,12 +35,16 @@ function New-Object {
   } else { Microsoft.PowerShell.Utility\New-Object @PSBoundParameters }
 }
 function New-Object2Headers { $h = [pscustomobject]@{}; $h | Add-Member ScriptMethod Add { param($a,$b) } -PassThru }
+# DOWNLOAD deletes a bad file with `del`, which the provider cannot round-trip on Linux for the
+# test's literal paths; route it to the framework API, which takes the name as given on both platforms
+function Remove-Item { [CmdletBinding()] param([Parameter(Position=0)]$Path,[switch]$Force) if ([io.file]::Exists("$Path")) { [io.file]::Delete("$Path") } }
+$script:goodSha = ([BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::ASCII.GetBytes('payload'))) -replace '-').ToLowerInvariant()
 
-function RunDownload ($url, $name, $succeedAt) {
+function RunDownload ($url, $name, $succeedAt, $sha = '') {
   $script:log = @(); $script:succeedAt = $succeedAt
   $f = Join-Path $T $name
-  if (Test-Path -LiteralPath $f) { Remove-Item -LiteralPath $f -Force }
-  DOWNLOAD $url $name $T
+  if ([io.file]::Exists($f)) { [io.file]::Delete($f) }
+  DOWNLOAD $url $name $T $sha
   return $f
 }
 
@@ -79,5 +83,30 @@ DOWNLOAD 'https://example.invalid/here.cab' 'here.cab'
 Pop-Location
 Check 'defaults to current directory' (Test-Path -LiteralPath (Join-Path $T 'here.cab')) 'True'
 
-Remove-Item -LiteralPath $T -Recurse -Force
+# 8. a pinned sha256 that matches is accepted at the first mechanism that delivers it
+$f = RunDownload 'https://example.invalid/p.cab' 'p.cab' 'bits' $script:goodSha
+Check 'matching pin accepted'        (($script:log -join '|') + ' / ' + [io.file]::Exists($f)) 'bits https://example.invalid/p.cab / True'
+
+# 9. a pinned sha256 that does NOT match: the file is discarded and the next mechanism is tried, never trusted
+$f = RunDownload 'https://example.invalid/q.cab' 'q.cab' 'bits' ('0' * 64)
+Check 'mismatch discards and keeps trying' ($script:log.Count) '8'
+Check 'mismatch leaves no file'      ([io.file]::Exists($f)) 'False'
+
+# 10. an already-present file is re-verified against the pin - a stale or tampered cache entry is replaced
+Set-Content -LiteralPath (Join-Path $T 'c.cab') -Value 'tampered' -NoNewline
+$script:log = @(); $script:succeedAt = 'iwr'
+DOWNLOAD 'https://example.invalid/c.cab' 'c.cab' $T $script:goodSha 6>$null
+Check 'cached mismatch is replaced'  ((Get-Content -LiteralPath (Join-Path $T 'c.cab') -Raw) + ' / ' + $script:log.Count) 'payload / 2'
+
+# 11. a 0-byte stub (a transfer that died) is treated as absent even with no pin, instead of poisoning the cache
+Set-Content -LiteralPath (Join-Path $T 'z.cab') -Value '' -NoNewline
+$script:log = @(); $script:succeedAt = 'bits'
+DOWNLOAD 'https://example.invalid/z.cab' 'z.cab' $T 6>$null
+Check 'empty stub is re-downloaded'  ((Get-Content -LiteralPath (Join-Path $T 'z.cab') -Raw) + ' / ' + $script:log.Count) 'payload / 1'
+
+# 12. the pin is case- and whitespace-insensitive (values are pasted from tool output)
+$f = RunDownload 'https://example.invalid/u.cab' 'u.cab' 'bits' ("  " + $script:goodSha.ToUpperInvariant() + " ")
+Check 'pin normalised'               ([io.file]::Exists($f)) 'True'
+
+[io.directory]::Delete($T, $true)
 "`n$pass passed, $fail failed"; if ($fail) { exit 1 }

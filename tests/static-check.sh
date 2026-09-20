@@ -67,6 +67,9 @@ if [ -n "$PWSH" ]; then
     && say "ok   dialog logic ($(grep -c '^ok' /tmp/dialog-mock.out) scenarios)" || { cat /tmp/dialog-mock.out; bad "dialog logic scenarios failed"; }
   # 9b. Behavioural tests for the remaining PowerShell functions, each driven against mocked dependencies
   #     (transfers, registry, metadata service, WinForms) so no network or Windows host is needed.
+  # 9c. The hash-pinning tool must find every static catalog in the version ladder (parse only, no downloads).
+  n=$("$PWSH" -NoProfile -File tests/pin-hashes.ps1 -ListOnly 2>/dev/null | grep -c '^[0-9A-Za-z_]* *https://')
+  [ "$n" -eq 13 ] && say "ok   pin-hashes finds all 13 static catalogs" || bad "pin-hashes found $n catalogs (expected 13)"
   for t in download wim-info fetch-cab products-xml choices; do
     out=$(mktemp)
     if "$PWSH" -NoProfile -File "tests/func-mock/$t.ps1" > "$out" 2>&1; then
