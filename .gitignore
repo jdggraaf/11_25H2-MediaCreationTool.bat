@@ -1,7 +1,10 @@
 dev/
 $ISO$/
 *.iso
-.github/
+# everything under .github/ stays ignored except the CI workflows - a bare .github/ rule
+# made `git add -A` silently drop tests.yml once already
+.github/*
+!.github/workflows/
 node_modules/
 memory-bank/
 *.json
