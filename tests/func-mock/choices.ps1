@@ -3,8 +3,12 @@
 # dialog when the second is cancelled" loop can be asserted without a display.
 param([string]$Bat = "$PSScriptRoot/../../MediaCreationTool.bat")
 $ErrorActionPreference = 'Stop'
-Add-Type -Path "$PSScriptRoot/../dialog-mock/WinFormsMock.cs"
-$f0 = [io.file]::ReadAllText($Bat)
+# on Windows [Windows.Forms.Form] resolves to the real System.Windows.Forms and the dialog would really open, so the mock
+# lives in its own MockUI namespace and the function text is pointed at it
+$mock = [io.file]::ReadAllText("$PSScriptRoot/../dialog-mock/WinFormsMock.cs") -replace 'namespace (Drawing|Windows\.Forms) ', 'namespace MockUI.$1 '
+Add-Type -TypeDefinition $mock
+function Mockify ($t) { $t -replace '(?<![\w.])(Windows\.Forms\.|Drawing\.)', 'MockUI.$1' }
+$f0 = Mockify ([io.file]::ReadAllText($Bat))  # the whole file: CHOICES2 re-reads CHOICES from $f0
 $0 = ($f0 -split '#\:CHOICES\:',3)[1]
 iex $0
 
@@ -12,7 +16,7 @@ $script:pass = 0; $script:fail = 0
 function Check ($name, $got, $want) {
   if ("$got" -eq "$want") { $script:pass++; "ok   $name -> $got" } else { $script:fail++; "FAIL $name -> got [$got] want [$want]" }
 }
-function Plan ([int[]]$clicks) { [Windows.Forms.Form]::ClickQueue.Clear(); foreach ($c in $clicks) { [void][Windows.Forms.Form]::ClickQueue.Add($c) } }
+function Plan ([int[]]$clicks) { [MockUI.Windows.Forms.Form]::ClickQueue.Clear(); foreach ($c in $clicks) { [void][MockUI.Windows.Forms.Form]::ClickQueue.Add($c) } }
 
 $three = 'First,Second,Third'
 

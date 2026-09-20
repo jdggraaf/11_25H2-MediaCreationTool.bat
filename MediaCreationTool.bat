@@ -80,7 +80,8 @@ call :reg_query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" "DisplayVers
 call :reg_query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" "EditionID"              OS_EDITION
 call :reg_query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" "ProductName"            OS_PRODUCT
 call :reg_query "HKU\S-1-5-18\Control Panel\Desktop\MuiCached" "MachinePreferredUILanguages" OS_LANGCODE
-for %%s in (%OS_LANGCODE%) do set "OS_LANGCODE=%%s"
+::# several ui languages come back pipe-separated: keep the first = primary (unquoted, the separator is a live pipe and cmd quits)
+for /f "delims=|" %%s in ("%OS_LANGCODE%") do set "OS_LANGCODE=%%s"
 set "OS_ARCH=x64" & if "%PROCESSOR_ARCHITECTURE:~-2%" equ "86" if not defined PROCESSOR_ARCHITEW6432 set "OS_ARCH=x86"
 
 ::# parse MCT choice from script name or commandline - accepts both formats: 1909 or 19H2 etc.
@@ -288,10 +289,10 @@ echo; Run it to get the setup window: pick the Windows version, what to do, and 
 echo; Every choice can also be given by renaming the script or on the commandline, in any order, for example:
 echo;   "auto 11_25H2 MediaCreationTool.bat"          upgrade this PC to 11 25H2 without prompts
 echo;   "iso 22H2 de-DE Enterprise MediaCreationTool.bat"   build a German Enterprise 22H2 ISO here
-echo;   MediaCreationTool.bat 11_24H2 usb x64 Professional no_update
+echo;   MediaCreationTool.bat 11_24H2 iso x64 Professional no_update
 echo;
 echo;   version    1703 1709 1903 1909 20H1 20H2 21H1 21H2 22H2 11_21H2 11_22H2 11_23H2 11_24H2 11_25H2
-echo;   action     auto (upgrade)  iso  usb   - nothing given = the setup window asks
+echo;   action     auto (upgrade)  iso   - nothing given = the setup window asks; Auto USB, Select and MCT Defaults are picked there
 echo;   edition    Home HomeN Pro ProN Edu EduN Enterprise EnterpriseN ProfessionalWorkstation ... (see setup window)
 echo;   language   any xx-YY code such as en-US de-DE fr-FR
 echo;   arch       x64 x86 (x86 only for Windows 10)
@@ -345,7 +346,11 @@ if not defined set for %%s in ("HKCU\Console\MCT") do (
 ::# set path, fix name (x), always use C:\ESD as WORK directory to prevent issues and preserve current one as ROOT
 pushd "%~dp0" & set "S=%SystemRoot%" & set "nx0=%~nx0" & call set "nx0=%%nx0:)=]%%" & call set "nx0=%%nx0:(=[%%"
 set "PATH=%S%\Sysnative;%S%\Sysnative\windowspowershell\v1.0\;%S%\System32;%S%\System32\windowspowershell\v1.0\;%PATH%"
+::# started from a pwsh 7 terminal, the inherited PSModulePath makes powershell 5.1 load 7's modules and fail (Get-AuthenticodeSignature)
+set "PSModulePath="
 set "WORK=%SystemDrive%\ESD" & if not defined ROOT (set "ROOT=%CD%") else if not exist "%ROOT%\*.bat" set "ROOT=%CD%"
+::# the relaunched work copy reads the ini next to itself - drop a stale one when the ini next to the script was deleted
+if not exist "%~dp0MediaCreationTool.ini" del /f /q "%WORK%\MediaCreationTool.ini" >nul 2>nul
 mkdir "%WORK%" >nul 2>nul & attrib -R -S -H "%WORK%" >nul 2>nul & robocopy "%~dp0/" "%WORK%/" "%~nx0" MediaCreationTool.ini >nul
 if "%~nx0" neq "%nx0%" copy /y "%WORK%\%~nx0" "%WORK%\%nx0%" >nul & del /f /q "%WORK%\%~nx0" >nul
 if not defined set start "MCT" cmd /d /x /c set "ROOT=%ROOT%" ^& call "%WORK%\%nx0%" %* set& exit /b
@@ -1175,10 +1180,10 @@ function SETUP_GUI {
  [Windows.Forms.Application]::EnableVisualStyles()
  $vids = "$env:VERSIONS".Split(','); $dV = [int]"$env:dV"; $dP = [int]"$env:dP"
  $presets = ("$env:PRESETS" -replace '&','').Split(',')
- $descs = @('MCT downloads the detected media, then the script runs the in-place upgrade without prompts',
-            'MCT downloads the detected media, then the script builds an ISO in the script folder / C:\ESD',
-            'MCT downloads the detected media, then the script writes it to the USB stick you pick',
-            'MCT asks you for Edition, Language, Architecture and target - the script adds its extras',
+ $descs = @('Gets the detected media, then upgrades this PC without prompts',
+            'Gets the detected media, then builds an ISO next to the script',
+            'Gets the detected media, then writes it to the USB stick you pick',
+            'MCT asks for edition, language, arch and target; script adds extras',
             'Plain MCT run - no script assistance, no extras added to the media')
  $editions = 'Core','CoreN','CoreSingleLanguage','CoreCountrySpecific','Professional','ProfessionalN','ProfessionalEducation',
   'ProfessionalEducationN','ProfessionalWorkstation','ProfessionalWorkstationN','Education','EducationN','Enterprise','EnterpriseN','Cloud','CloudN'

@@ -13,7 +13,12 @@ for f in MediaCreationTool.bat bypass11/*.bat bypass11/*.cmd bypass11/*.xml; do
   grep -q $'\r\r' "$f" && bad "double CR in $f"
 done
 
-# 2. XML well-formedness of the standalone unattend file.
+# 2. XML well-formedness of the standalone unattend file. Git Bash on Windows has no xmllint: fall back to a pwsh [xml] parse.
+PWSH=${PWSH:-$(command -v pwsh || true)}
+if ! command -v xmllint >/dev/null 2>&1; then
+  if [ -n "$PWSH" ]; then xmllint() { XMLFILE="$2" "$PWSH" -NoProfile -c '[xml](Get-Content -Raw -LiteralPath $env:XMLFILE) | Out-Null'; }
+  else xmllint() { say "skip xmllint $2 (neither xmllint nor pwsh found)"; }; fi
+fi
 xmllint --noout bypass11/AutoUnattend.xml && say "ok   xmllint bypass11/AutoUnattend.xml" || bad "AutoUnattend.xml not well-formed"
 
 # 3. Embedded unattend XML inside MediaCreationTool.bat (between <?xml and </unattend>).

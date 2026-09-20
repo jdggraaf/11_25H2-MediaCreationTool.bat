@@ -114,5 +114,66 @@ Loaded from the script folder before argument parsing (commandline and script na
   Note a generated test file must not be called `rename.bat`: cmd resolves that to the internal RENAME command.
 - Rendering the dialog under Wine was attempted with PowerShell 7.0/7.2/7.4 Windows builds; all crash at startup on
   64-bit-only Wine 9.0 (WineHQ bug 52396, needs wine-staging or wine32).
-- Still required on Windows before release: open the window on Windows 10 22H2 and 11 25H2 hosts, run each preset once,
-  run as standard user (UAC relaunch) and as admin, `help`, `legacy`, and an ini round-trip.
+- The mock suites also run on Windows now: the WinForms mock is compiled into a `MockUI` namespace (on Windows
+  `[Windows.Forms.Form]` is the real thing and the dialog would really open), and `static-check.sh` falls back to a
+  `pwsh` `[xml]` parse when Git Bash has no `xmllint`.
+
+### Windows validation, 2026-09-20
+
+Host: Windows 11 25H2 (26200), en-US, **standard user that is not in Administrators**, script started from a
+PowerShell 7.6 terminal, real `cmd.exe` and Windows PowerShell 5.1. No admin credentials, no Windows 10 host and no
+VM were available, so everything behind the UAC prompt is still open - those rows say so instead of guessing.
+"Gate" = the run reached the `fltmc` self-elevation line with the right relaunch token; to keep credential prompts off
+the desktop the test copy printed that line instead of calling `runas` (the only other edit: print instead of starting
+the MCT exe). The dialogs were driven through UI Automation.
+
+| Host | What | User | Outcome |
+|---|---|---|---|
+| 11 25H2 | setup window opens, 14 versions, 5 actions, Select greys out edition/language/arch/key | standard | pass, after fix 4 below |
+| 11 25H2 | Cancel | standard | pass: ` CANCELED ` |
+| 11 25H2 | MCT Defaults, 11 25H2, via the window - live FE3 query, download, Authenticode, `PRODUCTS_XML`, `makecab` | standard | pass, after fix 2; console shows `CAB verified against Microsoft catalog digest (SHA256)` |
+| 11 25H2 | MCT Defaults, 22H2 and 1709 (live catalogs, exe signature Valid, products.xml parses, 1709 edition clones present) | standard | pass |
+| 11 25H2 | Auto Upgrade / Auto ISO / Auto USB (+ dynamic update off) / Select via the window | standard | pass to the gate: `14.1`, `14.2`, `14.3 no_update`, `14.4` |
+| 11 25H2 | re-entry with the relaunch arguments `14.3 no_update` | standard | pass: no window, straight to the gate |
+| 11 25H2 | `help` | standard | pass, after fix 5 |
+| 11 25H2 | `legacy`: MCT Version dialog, then `11_25H2 MCT Preset` dialog | standard | pass to the gate: `14.2` |
+| 11 25H2 | ini round-trip: Auto ISO + Remember writes `MCT=11_25H2` / `ISO=1` next to the script and in `C:\ESD`; relaunch shows no window | standard | pass to the gate; deleting the ini only worked after fix 3 |
+| 11 25H2 | `DOWNLOAD` with a pinned sha256 on a 22H2 `products.cab` with one byte appended | standard | pass: ` products22H2.cab sha256 mismatch - discarding `, re-downloaded, hash matches; 0-byte stub re-downloaded; a pin that never matches ends in `download failed` with no file left |
+| 11 25H2 | UAC relaunch itself, anything after it (MCT run, ISO build, USB, upgrade), admin run | - | **not run**: no admin credentials on this host |
+| 11 25H2 | Auto ISO boots in a VM | - | **not run**: needs the admin run and Hyper-V rights |
+| 10 22H2 | everything | - | **not run**: no host |
+
+The checklist item "corrupt a cached `products<VID>.cab` with a `CABSHA` set" has no target in the script as it stands:
+no `:choice-N` sets `CABSHA` yet (`tests/pin-hashes.ps1` prints the values, nobody pasted them in) and `:process` deletes
+`products%VID%.cab` after expanding it, so nothing is cached between runs. `DOWNLOAD` was therefore tested directly,
+through its real batch wrapper lines.
+
+The two open Wine questions:
+
+1. `MachinePreferredUILanguages` with more than one language. Neither first nor last: real cmd.exe **quit the script**.
+   `reg query /se "|"` gives `OS_LANGCODE=nl-NL|en-US`, the value is expanded before the line is parsed, and
+   `for %%s in (nl-NL|en-US) do ...` has a live pipe in it: `| was unexpected at this time.`, exit 255, on line 83 of
+   every start (tested against a REG_MULTI_SZ copy in an HKCU scratch key; this host itself has one language). Wine kept
+   the last entry only because its parser does not treat that `|` as a pipe. Fix 1 keeps the first entry, which is the
+   primary UI language: `nl-NL|en-US` -> `nl-NL`, `en-US` -> `en-US`, missing value -> stays undefined.
+2. `!%%v!` in `:rename`: works on real cmd.exe. With the exact `:rename` and undo lines pointed at an HKCU scratch key,
+   `CompositionEditionID_undo`, `EditionID_undo` and `ProductName_undo` were written with the old values
+   (`Enterprise`, `Professional`, `Windows 10 Pro`), and the undo block of auto.cmd restored all three and deleted
+   the `_undo` values. Not checked against the real HKLM key (needs admin).
+
+Fixed on the way:
+
+1. Line 83: `for /f "delims=|" %%s in ("%OS_LANGCODE%")` - see question 1.
+2. `set "PSModulePath="` at start. Started from a PowerShell 7 terminal the script inherits 7's module path, Windows
+   PowerShell 5.1 then fails to load `Microsoft.PowerShell.Security`, `Get-AuthenticodeSignature` errors out and the
+   script reported a genuine, validly signed MCT exe as ` failed Authenticode signature check ` and deleted it.
+3. Stale ini: the relaunched copy in `C:\ESD` reads the ini next to *itself*, and robocopy only ever added it. After
+   "delete this file to get auto detection back" the remembered action kept starting. The copy is now dropped when the
+   ini next to the script is gone.
+4. Setup window: four of the five action descriptions were cut off at the right edge (`...the in-place upgrad`);
+   shortened to fit. The mock cannot see this, it has no text metrics.
+5. `help` listed a `usb` action keyword that the script never parsed; the text now says Auto USB, Select and MCT
+   Defaults are picked in the window.
+
+Still open: the rows marked not run. Cosmetic, left alone: `FETCH_25H2_CAB` prints its return value, a lone `0`,
+under the "CAB verified" line.

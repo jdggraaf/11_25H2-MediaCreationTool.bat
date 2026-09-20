@@ -3,8 +3,12 @@
 # Usage: pwsh -File tests/dialog-mock/run.ps1 MediaCreationTool.bat
 param([string]$Bat)
 $ErrorActionPreference = 'Stop'
-Add-Type -Path "$PSScriptRoot/WinFormsMock.cs"
-$f0 = [io.file]::ReadAllText($Bat); $0 = ($f0 -split '#\:SETUP_GUI\:',3)[1]
+# on Windows [Windows.Forms.Form] resolves to the real System.Windows.Forms and the dialog would really open, so the mock
+# lives in its own MockUI namespace and the function text is pointed at it
+$mock = [io.file]::ReadAllText("$PSScriptRoot/WinFormsMock.cs") -replace 'namespace (Drawing|Windows\.Forms) ', 'namespace MockUI.$1 '
+Add-Type -TypeDefinition $mock
+function Mockify ($t) { $t -replace '(?<![\w.])(Windows\.Forms\.|Drawing\.)', 'MockUI.$1' }
+$f0 = [io.file]::ReadAllText($Bat); $0 = Mockify ($f0 -split '#\:SETUP_GUI\:',3)[1]
 # make Pick/Val etc visible: define the function in this scope
 iex $0
 $env:VERSIONS='1703,1709,1903,1909,20H1,20H2,21H1,21H2,22H2,11_21H2,11_22H2,11_23H2,11_24H2,11_25H2'
@@ -12,7 +16,7 @@ $env:PRESETS='&Auto Upgrade,Auto &ISO,Auto &USB,&Select,MCT &Defaults'
 $env:OS_EDITION='Professional'; $env:OS_LANGCODE='en-US'; $env:OS_ARCH='x64'
 function Run ($dV,$dP,$edition,$lang,$arch,$key,$noupd,$def,$result='OK',[scriptblock]$tweak) {
   $env:dV="$dV"; $env:dP="$dP"; $env:EDITION=$edition; $env:LANGCODE=$lang; $env:ARCH=$arch; $env:KEY=$key; $env:NO_UPDATE=$noupd; $env:DEF=$def
-  [Windows.Forms.Form]::NextResult = $result
+  [MockUI.Windows.Forms.Form]::NextResult = $result
   $global:tweak = $tweak
   SETUP_GUI
 }
