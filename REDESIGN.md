@@ -99,9 +99,9 @@ Loaded from the script folder before argument parsing (commandline and script na
   12 scenarios pass: defaults, cancel, preselection from env/ini, list + radio + key + remember, greying-out for Select and
   MCT Defaults, key and language validation, every control inside the client area, list labels.
 - `tests/func-mock/*.ps1` (any OS with `pwsh`): the remaining PowerShell functions run against mocked dependencies.
-  109 assertions pass - `DOWNLOAD` (9: fallback order, https-first, short-circuits), `WIM_INFO` (14: all four output
-  modes, arch table), `FETCH_25H2_CAB` (29: request shape, country/version derivation, response shapes, SHA256 check),
-  `PRODUCTS_XML` (31: catalog wrapping, EULAs, labels, pruning, unhiding, edition clones), `CHOICES`/`CHOICES2` (26:
+  112 assertions pass - `DOWNLOAD` (9: fallback order, https-first, short-circuits), `WIM_INFO` (14: all four output
+  modes, arch table), `FETCH_25H2_CAB` (31: request shape, country/version derivation, response shapes, SHA256 check),
+  `PRODUCTS_XML` (32: catalog wrapping, EULAs, labels, pruning, unhiding, edition clones), `CHOICES`/`CHOICES2` (26:
   index maths, cancel, loop-back).
 - `tests/batch-func-check.sh` (Linux with Wine): every `:choice-N` branch (all 14 agree with the version alias table),
   `:save_ini`, `:reg_query` (against a stub `reg`, since Wine's own has no `/se`) and `:rename`.

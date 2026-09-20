@@ -116,21 +116,19 @@ $r = Run (Catalog $files $langs) 26200 '11_25H2'
 Check 'modern clone set'               (Editions $r) 'Embedded,Enterprise,EnterpriseN,EnterpriseS,EnterpriseSN,IoTEnterpriseS'
 Check 'clones are not retail only'     ((@($r.SelectNodes('//File') | where { $_.Edition -eq 'EnterpriseS' } | % { $_.IsRetailOnly }) | Sort-Object -Unique) -join ',') 'False'
 
-# --- 12. <=16299 additionally clones the ProfessionalEducation / Workstation SKUs.
-#    The non-N list is correct. The N list is NOT: $cloneN is initialised as a bare string
-#    ('EnterpriseSN') instead of an array, so `+=` concatenates rather than appends and the three
-#    N clones collapse into one entry with a joined-up Edition name. Pinned as-is so the defect is
-#    locked down and any fix shows up here as a deliberate change.
+# --- 12. <=16299 additionally clones the ProfessionalEducation / Workstation SKUs, N editions included.
+#    $clone and $cloneN must both be arrays: initialising either as a bare string makes `+=`
+#    concatenate rather than append, collapsing the extra clones into one joined-up Edition name.
 $r = Run (Catalog $files $langs) 16299 '1709'
-Check 'legacy clone set (non-N correct)' (@($r.SelectNodes('//File/Edition') | % { $_.InnerText } | Sort-Object -Unique) -notcontains 'ProfessionalEducationN') 'True'
-Check 'legacy N clones collapse (known defect)' (Editions $r) 'Embedded,Enterprise,EnterpriseN,EnterpriseS,EnterpriseSNProfessionalEducationN ProfessionalWorkstationN,IoTEnterpriseS,ProfessionalEducation,ProfessionalWorkstation'
+Check 'legacy clone set' (Editions $r) 'Embedded,Enterprise,EnterpriseN,EnterpriseS,EnterpriseSN,IoTEnterpriseS,ProfessionalEducation,ProfessionalEducationN,ProfessionalWorkstation,ProfessionalWorkstationN'
+Check 'N clones are separate entries' (@($r.SelectNodes('//File/Edition') | % { $_.InnerText }) -contains 'ProfessionalEducationN') 'True'
+Check 'no joined-up edition names' (@($r.SelectNodes('//File/Edition') | % { $_.InnerText } | where { $_ -match ' ' }).Count) '0'
 
 # --- 13. <=10586 clones from Professional instead, because those builds have no Enterprise entries
-#    (same $cloneN defect applies, with 'EnterpriseN' concatenated in as well)
 $files = (File 'en-us' 'x64' 'Professional' 'Windows 10 Pro') + (File 'en-us' 'x64' 'ProfessionalN' 'Windows 10 Pro N')
 $r = Run (Catalog $files $langs) 10586 '1511'
-Check 'professional is clone source'   (@($r.SelectNodes('//File/Edition') | % { $_.InnerText }) -contains 'Enterprise') 'True'
-Check 'legacy N clones collapse (known defect)' (Editions $r) 'Embedded,Enterprise,EnterpriseS,EnterpriseSNEnterpriseNProfessionalEducationN ProfessionalWorkstationN,IoTEnterpriseS,Professional,ProfessionalEducation,ProfessionalN,ProfessionalWorkstation'
+Check 'professional is clone source'   (Editions $r) 'Embedded,Enterprise,EnterpriseN,EnterpriseS,EnterpriseSN,IoTEnterpriseS,Professional,ProfessionalEducation,ProfessionalEducationN,ProfessionalN,ProfessionalWorkstation,ProfessionalWorkstationN'
+Check 'no joined-up edition names'     (@($r.SelectNodes('//File/Edition') | % { $_.InnerText } | where { $_ -match ' ' }).Count) '0'
 
 # --- 14. the saved file is still well-formed xml and keeps its declaration
 Check 'output parses as xml'           ($null -ne ([xml]([io.file]::ReadAllText($xmlPath))))       'True'

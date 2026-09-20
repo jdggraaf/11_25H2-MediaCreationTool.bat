@@ -1010,8 +1010,9 @@ function FETCH_25H2_CAB {
     $lc = $env:LANGCODE; if (-not $lc -or [string]::IsNullOrWhiteSpace($lc)) { $lc = $env:MEDIA_LANGCODE }
     if (-not $lc -or [string]::IsNullOrWhiteSpace($lc)) { $lc = (Get-Culture).Name }
     try {
-      $parts = $lc -split '-';
-      if ($parts.Length -ge 2 -and $parts[1].Length -ge 2) { $country = $parts[1].Substring(0,2).ToUpperInvariant() }
+      $parts = $lc -split '-'; $region = $parts[$parts.Length - 1]
+      #:: the region is the last subtag, so a script subtag (sr-Latn-RS, zh-Hans-CN) does not shift it
+      if ($parts.Length -ge 2 -and $region.Length -eq 2) { $country = $region.ToUpperInvariant() }
       else { $country = ([System.Globalization.RegionInfo] $lc).TwoLetterISORegionName }
     } catch { $country = ([System.Globalization.RegionInfo] (Get-Culture).Name).TwoLetterISORegionName }
     # the FE3 query returns the current Windows.Products.Cab for whatever DeviceAttributes context is sent;
@@ -1332,7 +1333,7 @@ function PRODUCTS_XML { [xml]$xml = [io.file]::ReadAllText("$pwd\products.xml",[
    }
  }
 #:: clone Professional / Enterprise to work around MCT quirks when host OS is ProEdu / ProWS / EnterpriseS / Embedded
- $source = 'Enterprise'; $sourceN = 'EnterpriseN'; $clone = 'Embedded','IoTEnterpriseS','EnterpriseS'; $cloneN = 'EnterpriseSN'
+ $source = 'Enterprise'; $sourceN = 'EnterpriseN'; $clone = @('Embedded','IoTEnterpriseS','EnterpriseS'); $cloneN = @('EnterpriseSN')
  if ($ver -le 10586) {$source = 'Professional'; $sourceN = 'ProfessionalN'; $clone +='Enterprise'; $cloneN+='EnterpriseN'}
  if ($ver -le 16299) {$clone +='ProfessionalEducation','ProfessionalWorkstation'}
  if ($ver -le 16299) {$cloneN+='ProfessionalEducationN','ProfessionalWorkstationN'}

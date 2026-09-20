@@ -109,11 +109,16 @@ Check 'country from MEDIA_LANGCODE' (Attrs)['IsoCountryShortCode'] 'FR'
 $env:MEDIA_LANGCODE = ''; $null = Run
 Check 'country from host culture'   (Attrs)['IsoCountryShortCode'] 'GB'
 
-# 8. a 3-part language code: documents CURRENT behaviour. sr-Latn-RS is a language the script
-#    explicitly supports, and the country ought to be RS - the code takes parts[1] ('Latn') and
-#    yields LA instead. Pinned here so the value cannot drift unnoticed before it is decided on.
+# 8. the region is the LAST subtag, so a script subtag must not shift it (sr-Latn-RS is a language
+#    the script explicitly supports; taking parts[1] would give LA, Laos)
 $env:LANGCODE = 'sr-Latn-RS'; $null = Run
-Check 'country from 3-part code (known wrong: RS expected)' (Attrs)['IsoCountryShortCode'] 'LA'
+Check 'country from 3-part code'    (Attrs)['IsoCountryShortCode'] 'RS'
+$env:LANGCODE = 'zh-Hans-CN'; $null = Run
+Check 'country from script subtag'  (Attrs)['IsoCountryShortCode'] 'CN'
+# a UN M49 region (es-419) is not a 2-letter code, so it takes the RegionInfo path; .NET resolves
+# that one rather than throwing, so it yields 419 (the old parts[1] path would have given "41")
+$env:LANGCODE = 'es-419'; $null = Run
+Check 'numeric region via RegionInfo' (Attrs)['IsoCountryShortCode'] '419'
 
 # 9. no EDITION set -> documented defaults, and no CB -> the 26100 floor
 $env:LANGCODE = 'en-US'; $env:EDITION = ''; $env:CB = ''; $null = Run
