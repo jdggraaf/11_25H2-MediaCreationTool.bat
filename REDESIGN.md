@@ -163,7 +163,7 @@ The two open Wine questions:
 
 Fixed on the way:
 
-1. Line 83: `for /f "delims=|" %%s in ("%OS_LANGCODE%")` - see question 1.
+1. The `OS_LANGCODE` line (now line 84): `for /f "delims=|" %%s in ("%OS_LANGCODE%")` - see question 1.
 2. `set "PSModulePath="` at start. Started from a PowerShell 7 terminal the script inherits 7's module path, Windows
    PowerShell 5.1 then fails to load `Microsoft.PowerShell.Security`, `Get-AuthenticodeSignature` errors out and the
    script reported a genuine, validly signed MCT exe as ` failed Authenticode signature check ` and deleted it.

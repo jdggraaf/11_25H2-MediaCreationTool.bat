@@ -8,3 +8,6 @@ $ISO$/
 node_modules/
 memory-bank/
 *.json
+# written next to the script by every run / by "Remember these choices"
+latest_MCT.url
+MediaCreationTool.ini
