@@ -26,9 +26,10 @@ rm -f "$tmp"
 
 # 4. Every `call :LABEL` / `goto :LABEL` in each batch file has a matching `:LABEL` (or hybrid `#:LABEL:#`) line.
 for f in MediaCreationTool.bat bypass11/*.bat bypass11/*.cmd; do
-  for lbl in $(tr -d '\r' < "$f" | grep -oiE '(call|goto) :[A-Za-z0-9_-]+' | awk '{print $2}' | tr -d ':' | sort -u); do
+  body=$(tr -d '\r' < "$f")   # once per file: piping tr into grep -q per label made tr die of SIGPIPE ("write error: Broken pipe")
+  for lbl in $(grep -oiE '(call|goto) :[A-Za-z0-9_-]+' <<< "$body" | awk '{print $2}' | tr -d ':' | sort -u); do
     [ "$lbl" = "eof" ] && continue
-    tr -d '\r' < "$f" | grep -qiE "^(#)?:$lbl\b" || bad "$f: no label :$lbl"
+    grep -qiE "^(#)?:$lbl\b" <<< "$body" || bad "$f: no label :$lbl"
   done
   say "ok   labels $f"
 done
