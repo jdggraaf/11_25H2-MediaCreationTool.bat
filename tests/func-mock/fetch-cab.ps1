@@ -1,9 +1,9 @@
-# Exercises the real FETCH_25H2_CAB function with the registry, the metadata service and the CDN all mocked,
+# Exercises the real FETCH_CAB function with the registry, the metadata service and the CDN all mocked,
 # so the request it builds, the country/version derivation, the response shapes it accepts and above all the
 # SHA256 digest check can be asserted without contacting Microsoft.
 param([string]$Bat = "$PSScriptRoot/../../MediaCreationTool.bat")
 $ErrorActionPreference = 'Stop'
-$0 = ([io.file]::ReadAllText($Bat) -split '#\:FETCH_25H2_CAB\:',3)[1]
+$0 = ([io.file]::ReadAllText($Bat) -split '#\:FETCH_CAB\:',3)[1]
 iex $0
 
 $script:pass = 0; $script:fail = 0
@@ -19,7 +19,7 @@ $script:goodDigest = [Convert]::ToBase64String([Security.Cryptography.SHA256]::C
 $script:body = $null; $script:fetched = $null; $script:response = $null; $script:restThrows = $false
 
 function Get-ItemProperty { param($Path) [pscustomobject]@{ CurrentBuild = '26100'; UBR = 4946; EditionID = 'Core' } }
-# FETCH_25H2_CAB addresses its output as "$pwd\products$env:VID.cab". On Windows that is an ordinary path;
+# FETCH_CAB addresses its output as "$pwd\products$env:VID.cab". On Windows that is an ordinary path;
 # on Linux the backslash is a literal name character the PowerShell provider cannot round-trip, so Get-Item
 # and Remove-Item are redirected to the framework file APIs, which take the name literally on both platforms.
 function Get-Item { [CmdletBinding()] param([Parameter(Position=0)]$Path) [pscustomobject]@{ Length = [io.file]::ReadAllBytes("$Path").Length } }
@@ -51,7 +51,7 @@ function Run ($digest = $script:goodDigest, $shape = 'object') {
   if ([io.file]::Exists($script:outPath)) { [io.file]::Delete($script:outPath) }
   $env:VID = '11_25H2'
   Push-Location $T
-  try { $rc = FETCH_25H2_CAB 6>$null } finally { Pop-Location }
+  try { $rc = FETCH_CAB 6>$null } finally { Pop-Location }
   return $rc
 }
 # the exact expression the function builds, so the test looks where the function actually writes

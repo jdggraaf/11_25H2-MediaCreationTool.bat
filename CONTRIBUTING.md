@@ -37,7 +37,7 @@ real functions against mocked dependencies:
 | --- | --- | --- |
 | `download.ps1` | `DOWNLOAD` | BITS, `Invoke-WebRequest`, `bitsadmin`, `WebClient` |
 | `wim-info.ps1` | `WIM_INFO` | a synthetic `.esd` built to the layout it scans |
-| `fetch-cab.ps1` | `FETCH_25H2_CAB` | registry, metadata service, CDN |
+| `fetch-cab.ps1` | `FETCH_CAB` | registry, metadata service, CDN |
 | `products-xml.ps1` | `PRODUCTS_XML` | synthetic catalogs on disk |
 | `choices.ps1` | `CHOICES`, `CHOICES2` | the WinForms mock, with queued button presses |
 
@@ -66,13 +66,13 @@ MCT and Windows setup themselves can still only be exercised on Windows.
 `MediaCreationTool.bat` picks the OS version/edition to fetch through a small,
 hand-curated table:
 
-- `set VERSIONS=1703,1709,1903,...,11_24H2,11_25H2` (around line 59) lists every
+- `set VERSIONS=1703,1709,1903,...,11_25H2,11_26H2` (around line 73) lists every
   supported version string, in order, and `set /a dV=14` sets the dialog's
   default selection index into that same list.
 - Each version has a matching `:choice-N` label further down the script (around
   lines 149-270), where `N` is the 1-based position of that version in
-  `VERSIONS` - e.g. `VERSIONS` item 14 is `11_25H2`, and `:choice-14` sets
-  `VER`, `VID`, `CB`, `CT`, `CC`, `XML`/`XMLSHA` and `EXE` for 11 25H2; item 3 is `1903`
+  `VERSIONS` - e.g. `VERSIONS` item 15 is `11_26H2`, and `:choice-15` sets
+  `VER`, `VID`, `CB`, `CT`, `CC`, `CAB` and `EXE` for 11 26H2; item 3 is `1903`
   and `:choice-3` configures that release, and so on down to item 1 (`1703`,
   `:choice-1`). Versions whose Microsoft downloads disappeared (1507-1607,
   1803, 1809) were removed in September 2026 rather than pointed elsewhere.
@@ -85,8 +85,9 @@ hand-curated table:
   commit that added it, `XMLSHA` to its sha256, and prefer `%ROOT%\<file>` when it sits beside the
   script. Keep the file CRLF; `tests/static-check.sh` checks the line endings, that it is
   well-formed, and that `XMLSHA` matches it. Changing the file means a new commit url and a new
-  `XMLSHA`. Do not point a version at FE3 (`FETCH_25H2_CAB`) unless it is the newest release - FE3
-  only ever returns the newest catalog.
+  `XMLSHA`. Only the newest release may use FE3 (`CAB=FETCH`) - FE3 only ever returns the newest catalog,
+  and the script refuses a fetched catalog whose ESDs are not for `VER`. When a new release ships,
+  pin the previous one's catalog this way before (or in the same change as) adding the new one.
 
 ## Changelog
 

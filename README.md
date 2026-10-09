@@ -3,18 +3,18 @@ Not just an Universal MediaCreationTool wrapper script with ingenious support fo
 A powerful yet simple windows 10 / 11 deployment automation tool as well!  
 *If you had no success launching the script so far, this latest version will work*  
 
-**Pinned 25H2 catalog** — 11 25H2 media comes from `products_11_25H2.xml` (build 26200.6899), a fixed copy of Microsoft's 25H2 catalog whose ESD links point at Microsoft's CDN. Since Windows 11 26H2 shipped (29 Sep 2026) Microsoft's Update Metadata Service (FE3) only hands out the 26H2 catalog, so fetching it live made the 25H2 choice download 26H2. The version list runs 1703 to 11 25H2 (14 versions); FE3 details in `docs/FE3-endpoint.md`
+**Windows 11 26H2** — the 26H2 media catalog is fetched live from Microsoft's Update Metadata Service (FE3), verified against the SHA256 digest Microsoft returns, and checked to really be 26H2 before it is used. **11 25H2** comes from `products_11_25H2.xml` (build 26200.6899), a fixed copy of Microsoft's 25H2 catalog whose ESD links point at Microsoft's CDN: FE3 only ever hands out the newest release. The version list runs 1703 to 11 26H2 (15 versions); FE3 details in `docs/FE3-endpoint.md`
 
 **Requirement bypass (checked September 2026)** — the same mechanisms Rufus 4.6+ uses:
 - clean install from the ISO/USB: LabConfig `BypassTPMCheck` `BypassSecureBootCheck` `BypassRAMCheck` `BypassCPUCheck` `BypassStorageCheck` set in the windowsPE pass of the boot.wim unattend
-- in-place upgrade (auto.cmd): `AllowUpgradesWithUnsupportedTPMorCPU`, the `HwReqChkVars` answers (TPM 2, Secure Boot, 8 GB) and cleared AppCompatFlags markers - keeps files and apps on 24H2 / 25H2
+- in-place upgrade (auto.cmd): `AllowUpgradesWithUnsupportedTPMorCPU`, the `HwReqChkVars` answers (TPM 2, Secure Boot, 8 GB) and cleared AppCompatFlags markers - keeps files and apps on 24H2 / 25H2 / 26H2
 - 21H2 - 23H2 media still get the classic 0-byte `appraiserres.dll`; 24H2+ ignores it, so it is no longer relied on
 - no bypass exists for CPUs without SSE4.2 / POPCNT (hard requirement since 24H2) - such PCs stay on Windows 10 or 23H2
 
 Setup window  
 ------------  
 Run the script and one window asks for everything:  
-> _**1. Windows version** - newest first, 11 25H2 preselected. Windows 10 support ended 14 Oct 2025 (ESU until 13 Oct 2026)_  
+> _**1. Windows version** - newest first, 11 26H2 preselected. Windows 10 support ended 14 Oct 2025 (ESU until 13 Oct 2026)_  
 > _**2. What to do** - Auto Upgrade / Auto ISO / Auto USB / Select / MCT Defaults, each with a one-line explanation_  
 > _**3. Media options** - Edition, Language, Architecture (Auto = same as this PC), product key, dynamic update, script extras_  
 > _**Remember these choices** writes `MediaCreationTool.ini` next to the script; delete it or untick to get auto detection back_  
@@ -56,12 +56,16 @@ Presets
 
 Features  
 --------
+- **Live 26H2 catalog** from Microsoft Update Metadata Service (FE3)
+  - Queries with device attributes (build, architecture, country, edition, etc.); `LANGCODE` (e.g. `nl-NL` → `IsoCountryShortCode=NL`) or the host culture sets the country
+  - Resolves the signed URL, downloads products.cab, and verifies it against the returned SHA256 digest
+  - The extracted catalog must list ESDs for the chosen build (26300); otherwise the script stops with an error instead of building another version. FE3 only serves the newest release, so when 27H2 ships the 26H2 entry needs a pinned catalog like 25H2's
 - **Pinned 25H2 catalog** (`products_11_25H2.xml`, 26200.6899)
   - Used from the script's own folder when present, otherwise downloaded from this repository at a fixed commit
   - The download is checked against the sha256 pinned in the script (`XMLSHA`) and discarded on mismatch; every ESD entry carries its own SHA256, which MCT verifies
   - Offline media is 26200.6899; Auto Upgrade with dynamic update (the default) still pulls the latest 25H2 cumulative update
-  - Why not live: Microsoft's Update Metadata Service (FE3) returns only the newest catalog whatever the query asks for, which has been 26H2 (26300) since 29 Sep 2026. The FE3 fetch (`FETCH_25H2_CAB`) is kept for a future 26H2 entry
-- **Requirement bypass, refreshed for 24H2 / 25H2** (the mechanisms Rufus 4.6+ uses)
+  - Why not live: Microsoft's Update Metadata Service (FE3) returns only the newest catalog whatever the query asks for, which has been 26H2 (26300) since 29 Sep 2026
+- **Requirement bypass, refreshed for 24H2 / 25H2 / 26H2** (the mechanisms Rufus 4.6+ uses)
   - clean install: LabConfig `BypassTPMCheck` / `BypassSecureBootCheck` / `BypassRAMCheck` / `BypassCPUCheck` / `BypassStorageCheck` in the **windowsPE** pass of the boot.wim unattend, before setup's compatibility check
   - in-place upgrade (auto.cmd, and `bypass11/Skip_TPM_Check` for Windows Update): `AllowUpgradesWithUnsupportedTPMorCPU`, the `HwReqChkVars` answers (TPM 2, Secure Boot, 8 GB) and cleared AppCompatFlags markers - keeps files and apps
   - 21H2 - 23H2 media keep the classic 0-byte `appraiserres.dll` (24H2+ ignores it)
@@ -163,6 +167,7 @@ _We did it! We broke [the previous gist](https://git.io/MediaCreationTool.bat)_ 
             25H2 dynamic CAB fetch from FE3 (respects LANGCODE for country detection)
             all issues ironed out; upgrade keeping files from Eval editions too; pickup $ISO$ dir content to add on media
             DU in 11: auto installs 22000.556 atm; older skip_11_checks, without Server label; Home offline local account
+2026.10.09: added Windows 11 26H2 (15 versions, new default), catalog fetched live from FE3; FETCH_25H2_CAB renamed FETCH_CAB; a fetched catalog whose build is not the chosen version is now refused
 2026.10.09: fixed 11 25H2 downloading 26H2 - FE3 now serves only the 26H2 catalog, so 25H2 uses the pinned 26200.6899 catalog products_11_25H2.xml (local copy first, else this repo, sha256-checked via XMLSHA)
 2026.09.20: catalog pinning - a version may carry the sha256 of its products*.cab (CABSHA) and DOWNLOAD discards a download that does not match; a 0-byte stub left by a dead transfer is no longer treated as a finished download. tests/pin-hashes.ps1 prints the values. CI now runs the whole test suite on every push
 2026.09.13: FETCH_25H2_CAB now verifies the fetched catalog against the SHA256 digest the metadata service returns, and derives the query version floor from the target build (see docs/FE3-endpoint.md)

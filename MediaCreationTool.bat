@@ -1,10 +1,13 @@
 @goto latest at github.com/AveYo/MediaCreationTool.bat
-:Universal MCT wrapper script for all Windows 10/11 versions from 1703 to 25H2!
+:Universal MCT wrapper script for all Windows 10/11 versions from 1703 to 26H2!
 :: Nothing but Microsoft-hosted source links and no third-party tools; script just configures an xml and starts MCT
 :: Ingenious support for business editions (Enterprise / VL) selecting language, x86, x64 or AiO inside the MCT GUI
-:: 25H2 uses its own pinned catalog (26200.6899) - Microsoft's update metadata service now only serves 26H2
+:: 26H2 catalog fetched live from Microsoft Update Metadata Service (FE3) with LANGCODE support, checked to be 26H2
+:: 25H2 uses its own pinned catalog (26200.6899) - FE3 only ever serves the newest release
 :: TPM Bypass Enhancements with HwReqChk, LabConfig, and MoSetup registry configurations
 :: Changelog: 2026.10.09
+:: - added Windows 11 26H2 (15 versions, new default): catalog fetched live from FE3; FETCH_25H2_CAB is now FETCH_CAB, and a
+::   fetched catalog whose build is not the chosen version is refused (so a future 27H2 cannot pass as 26H2)
 :: - fixed: 11 25H2 downloaded 26H2 - Microsoft's update metadata service (FE3) now serves only the 26H2 catalog, so
 ::   25H2 uses a pinned 26200.6899 catalog (products_11_25H2.xml beside the script, else from this repo, sha256-checked)
 :: Changelog: 2026.09.12 stable
@@ -24,10 +27,10 @@
 :: - 25H2 dynamic CAB fetch from FE3 (respects LANGCODE for country detection)
 :: - all issues ironed out; upgrade keeping files from Eval editions too; pickup $ISO$ dir content to add on media
 :: - DU in 11: auto installs 22000.556 atm; older skip_11_checks, without Server label; Home offline local account
-:: on upgrade: latest build, on offline install: 11 25H2 26200.6899 / 11 24H2 26100.4349 / 11 23H2 22631.2861 / 11 22H2 22621.1702 / 11 21H2 22000.318 / 22H2 19045.3803 / 21H2 19044.1288 / 21H1 19043.1348 / 20H2 19042.1052
+:: on upgrade: latest build, on offline install: 11 26H2 latest (26300.9457 at release) / 11 25H2 26200.6899 / 11 24H2 26100.4349 / 11 23H2 22631.2861 / 11 22H2 22621.1702 / 11 21H2 22000.318 / 22H2 19045.3803 / 21H2 19044.1288 / 21H1 19043.1348 / 20H2 19042.1052
 
-::# uncomment to skip GUI dialog for MCT choice: 1703 to 11 25H2 - or rename script: "11_25H2 MediaCreationTool.bat"
-rem set MCT=2509
+::# uncomment to skip GUI dialog for MCT choice: 1703 to 11 26H2 - or rename script: "11_26H2 MediaCreationTool.bat"
+rem set MCT=2609
 
 ::# uncomment to start auto upgrade setup directly (no prompts) - or rename script: "auto 11 MediaCreationTool.bat"
 rem set /a AUTO=1
@@ -69,9 +72,9 @@ set /a UNHIDE_BUSINESS=1
 ::# comment to not insert Enterprise esd links for 1703 or update links for 1909,2004,20H2,21H1 in products.xml (only these have data)
 set /a INSERT_BUSINESS=1
 
-::# MCT Version choice dialog items and default-index [11_25H2]
-set VERSIONS=1703,1709,1903,1909,20H1,20H2,21H1,21H2,22H2,11_21H2,11_22H2,11_23H2,11_24H2,11_25H2
-set /a dV=14
+::# MCT Version choice dialog items and default-index [11_26H2]
+set VERSIONS=1703,1709,1903,1909,20H1,20H2,21H1,21H2,22H2,11_21H2,11_22H2,11_23H2,11_24H2,11_25H2,11_26H2
+set /a dV=15
 
 ::# MCT Preset choice dialog items and default-index [Select in MCT]
 set PRESETS=^&Auto Upgrade,Auto ^&ISO,Auto ^&USB,^&Select,MCT ^&Defaults
@@ -88,7 +91,7 @@ set "OS_ARCH=x64" & if "%PROCESSOR_ARCHITECTURE:~-2%" equ "86" if not defined PR
 
 ::# parse MCT choice from script name or commandline - accepts both formats: 1909 or 19H2 etc.
 for %%V in (1.1703 2.1709 3.1903 3.19H1 4.1909 4.19H2 5.2004 5.20H1 6.2009 6.20H2 7.2104 7.21H1 8.2109 8.21H2 9.2210 9.22H2
- 10.2110 10.11_21H2 11.2209 11.11_22H2 12.2310 12.11_23H2 13.2409 13.11_24H2 14.2509 14.11_25H2) do for %%s in (%MCT% %~n0 %*) do if /i %%~xV equ .%%~s set "MCT=%%~nV" & set "VID=%%~s"
+ 10.2110 10.11_21H2 11.2209 11.11_22H2 12.2310 12.11_23H2 13.2409 13.11_24H2 14.2509 14.11_25H2 15.2609 15.11_26H2) do for %%s in (%MCT% %~n0 %*) do if /i %%~xV equ .%%~s set "MCT=%%~nV" & set "VID=%%~s"
 if defined MCT if not defined VID set "MCT="
 
 ::# parse AUTO from script name or commandline - starts unattended upgrade / in-place repair / cross-edition
@@ -186,9 +189,16 @@ goto choice-%MCT%
 
 ::# a choice may set CABSHA to the sha256 of its products*.cab - dated catalogs never change once published, so DOWNLOAD
 ::# can discard a download that does not match. tests/pin-hashes.ps1 prints the values on a machine that can reach the urls.
+:choice-15
+set "VER=26300" & set "VID=11_26H2" & set "CB=26300.9457.260913-1737.26h2_ge_release_svc_refresh" & set "CT=2026/09/" & set "CC=2.1"
+::# no static 26H2 cab exists: FETCH_CAB asks FE3, which serves the newest release only - the build is checked after expand
+set "CAB=FETCH"
+set "EXE=https://download.microsoft.com/download/0a8b07d9-a3bf-47b9-b71b-8e13354cec88/MediaCreationTool.exe"
+goto process ::# windows 11 26H2
+
 :choice-14
 set "VER=26200" & set "VID=11_25H2" & set "CB=26200.6899.251011-1532.25h2_ge_release_svc_refresh" & set "CT=2025/10/" & set "CC=2.1"
-::# FE3 (FETCH_25H2_CAB) returns the newest catalog for any query - 26H2 (26300) since 2026-09-29 - so 25H2 uses a pinned
+::# FE3 (FETCH_CAB) returns the newest catalog for any query - 26H2 (26300) since 2026-09-29 - so 25H2 uses a pinned
 ::# catalog instead: products_11_25H2.xml next to the script, else the same file from this repo, checked against XMLSHA
 set "XML=https://raw.githubusercontent.com/jdggraaf/11_25H2-MediaCreationTool.bat/a8c151c97fbf3fa5e8e77a7f28ebadc315c2cb09/products_11_25H2.xml" & set "XMLSHA=8de94fa2e868588ad527315744d7b6bb43d6c088e04d8866c317295abb985704"
 if exist "%ROOT%\products_11_25H2.xml" set "XML=%ROOT%\products_11_25H2.xml"
@@ -288,15 +298,15 @@ set /a MCT=%dv% & set /a PRE=%dP% & goto choice-%dV%
 
 :help
 echo;
-echo; MediaCreationTool.bat  -  Universal MCT wrapper for Windows 10 1703 through Windows 11 25H2
+echo; MediaCreationTool.bat  -  Universal MCT wrapper for Windows 10 1703 through Windows 11 26H2
 echo;
 echo; Run it to get the setup window: pick the Windows version, what to do, and the media options. Start.
 echo; Every choice can also be given by renaming the script or on the commandline, in any order, for example:
-echo;   "auto 11_25H2 MediaCreationTool.bat"          upgrade this PC to 11 25H2 without prompts
+echo;   "auto 11_26H2 MediaCreationTool.bat"          upgrade this PC to 11 26H2 without prompts
 echo;   "iso 22H2 de-DE Enterprise MediaCreationTool.bat"   build a German Enterprise 22H2 ISO here
 echo;   MediaCreationTool.bat 11_24H2 usb x64 Professional no_update
 echo;
-echo;   version    1703 1709 1903 1909 20H1 20H2 21H1 21H2 22H2 11_21H2 11_22H2 11_23H2 11_24H2 11_25H2
+echo;   version    1703 1709 1903 1909 20H1 20H2 21H1 21H2 22H2 11_21H2 11_22H2 11_23H2 11_24H2 11_25H2 11_26H2
 echo;   action     auto (upgrade)  iso  usb   - nothing given = the setup window asks
 echo;   edition    Home HomeN Pro ProN Edu EduN Enterprise EnterpriseN ProfessionalWorkstation ... (see setup window)
 echo;   language   any xx-YY code such as en-US de-DE fr-FR
@@ -432,6 +442,7 @@ if %VER% geq 22621 (set X=11& set VIS=22H2)
 if %VER% geq 22631 (set X=11& set VIS=23H2)
 if %VER% geq 26100 (set X=11& set VIS=24H2)
 if %VER% geq 26200 (set X=11& set VIS=25H2)
+if %VER% geq 26300 (set X=11& set VIS=26H2)
 
 ::# refresh screen
 cls & <"%~f0" (set /p _=&for /l %%s in (1,1,20) do set _=& set/p _=& call echo;%%_%%)
@@ -445,11 +456,14 @@ echo;
 if defined EXE echo;%EXE% & call :DOWNLOAD "%EXE%" MediaCreationTool%VID%.exe
 if defined XML if exist "%XML%" (echo;%XML% & copy /y "%XML%" products.xml >nul 2>nul) else (echo;%XML% & call :DOWNLOAD "%XML%" products%VID%.xml "" "%XMLSHA%")
 if defined CAB (
-  if "%CAB%" equ "FETCH_25H2" (echo;Fetching 25H2 CAB from Microsoft & call :FETCH_25H2_CAB) else (echo;%CAB% & call :DOWNLOAD "%CAB%" products%VID%.cab "" "%CABSHA%")
+  if "%CAB%" equ "FETCH" (echo;Fetching %VIS% CAB from Microsoft & call :FETCH_CAB) else (echo;%CAB% & call :DOWNLOAD "%CAB%" products%VID%.cab "" "%CABSHA%")
 )
 if exist products%VID%.xml copy /y products%VID%.xml products.xml >nul 2>nul
 if exist products%VID%.cab expand.exe -R products%VID%.cab -F:* . >nul 2>nul
 if exist products%VID%.cab del /f /q products%VID%.cab >nul 2>nul
+::# FE3 serves the newest release only - refuse a fetched catalog for another build instead of building the wrong version
+if "%CAB%" equ "FETCH" if exist products.xml find "<FileName>%VER%." products.xml >nul
+if "%CAB%" equ "FETCH" if exist products.xml if errorlevel 1 (%<%:4f " ERROR "%>>% & %<%:0f " Microsoft served a catalog that is not %VIS% - FE3 only has the newest release, pick that or update the script "%>% & del /f /q products.xml)
 set "/hint=Check urls in browser | del ESD dir | use powershell v3.0+ | unblock powershell | enable BITS serv"
 echo;& set err=& for %%s in (products.xml MediaCreationTool%VID%.exe) do if not exist %%s set err=1
 if defined err (%<%:4f " ERROR "%>>% & %<%:0f " %/hint% "%>%) else if not defined err %<%:0f " %PRESET% "%>%
@@ -1001,10 +1015,10 @@ function MakeISO ($dir,$iso,$label='DVD_ROM') {if (!(test-path -Path $dir -patht
 } #:MakeISO:#  export directory as (bootable) udf iso - lean and mean snippet by AveYo, 2022.03.15
 
 ::--------------------------------------------------------------------------------------------------------------------------------
-#:FETCH_25H2_CAB:#  [INTERNAL] Fetch the current CAB from Microsoft Update Metadata Service - unused since FE3 moved to 26H2, kept for a 26H2 entry
-set ^ #=;$f0=[io.file]::ReadAllText($env:0); $0=($f0-split '#\:FETCH_25H2_CAB\:' ,3)[1]; $1=$env:1-replace'([`@$])','`$1'; iex($0+$1)
-set ^ #=& set "0=%~f0"& set 1=;FETCH_25H2_CAB %*& powershell -nop -c "%#%"& exit /b %errorcode%
-function FETCH_25H2_CAB {
+#:FETCH_CAB:#  [INTERNAL] Fetch the current CAB from Microsoft Update Metadata Service - the newest release only (26H2 now)
+set ^ #=;$f0=[io.file]::ReadAllText($env:0); $0=($f0-split '#\:FETCH_CAB\:' ,3)[1]; $1=$env:1-replace'([`@$])','`$1'; iex($0+$1)
+set ^ #=& set "0=%~f0"& set 1=;FETCH_CAB %*& powershell -nop -c "%#%"& exit /b %errorcode%
+function FETCH_CAB {
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
   $uri = "https://fe3.delivery.mp.microsoft.com/UpdateMetadataService/updates/search/v1/bydeviceinfo"
   $output = "$pwd\products$env:VID.cab"
@@ -1025,7 +1039,7 @@ function FETCH_25H2_CAB {
       else { $country = ([System.Globalization.RegionInfo] $lc).TwoLetterISORegionName }
     } catch { $country = ([System.Globalization.RegionInfo] (Get-Culture).Name).TwoLetterISORegionName }
     # the FE3 query returns the current Windows.Products.Cab for whatever DeviceAttributes context is sent;
-    # V is a minimum-version floor, not an exact selector (a 26100 or 26200 floor both return the current 25H2
+    # V is a minimum-version floor, not an exact selector (26100, 26200 and 26300 floors all return the current 26H2
     # catalog, older floors like 22631 return nothing) - so derive the floor from the target build in CB
     if ("$env:CB" -match '^(\d+)\.') { $targetVersion = "$($matches[1]).0.0.0" } else { $targetVersion = "26100.0.0.0" }
     $branch = "br_release"
@@ -1071,7 +1085,7 @@ function FETCH_25H2_CAB {
     
     $headers = @{ "Accept" = "*/*"; "User-Agent" = $ua }
     
-    write-host "Querying Microsoft Update Metadata Service for 25H2 CAB..."
+    write-host "Querying Microsoft Update Metadata Service for $env:VIS CAB..."
     $response = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -ContentType "application/json" -Body $body -ErrorAction Stop -TimeoutSec 30
     
     $loc = $null
@@ -1090,7 +1104,7 @@ function FETCH_25H2_CAB {
       return 1
     }
     
-    write-host "Downloading 25H2 CAB from: $($url.Substring(0, [Math]::Min(80, $url.Length)))..."
+    write-host "Downloading $env:VIS CAB from: $($url.Substring(0, [Math]::Min(80, $url.Length)))..."
     try {
       Invoke-WebRequest -Uri $url -Headers @{ "User-Agent"=$ua; "Accept"="*/*" } -OutFile $output -ErrorAction Stop
       $size = (Get-Item $output).Length
@@ -1118,10 +1132,10 @@ function FETCH_25H2_CAB {
     return 0
   } catch {
     write-host -fore Red "Error: $_"
-    write-host -fore Yellow "Fallback: Unable to fetch 25H2 CAB"
+    write-host -fore Yellow "Fallback: Unable to fetch $env:VIS CAB"
     return 1
   }
-} #:FETCH_25H2_CAB:#
+} #:FETCH_CAB:#
 
 ::--------------------------------------------------------------------------------------------------------------------------------
 #:DOWNLOAD:# [PARAMS] "url" "file" [optional]"path" [optional]"sha256" - an empty path means the current directory

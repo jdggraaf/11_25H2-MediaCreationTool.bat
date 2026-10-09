@@ -20,7 +20,7 @@ def find(pred, start=0):
     return next(i for i in range(start, len(L)) if pred(L[i]))
 
 # --- the whole :choice-N ladder, verbatim, with a stub :process that prints what the branch set
-first = find(lambda l: l.startswith(':choice-14'))
+first = find(lambda l: l.startswith(':choice-15'))
 last  = find(lambda l: l.startswith(':choice-0'))
 ladder = L[first:last]
 open(f'{T}/choices.bat','wb').write(crlf(
@@ -90,13 +90,23 @@ open(f'{T}/renametest.bat','wb').write(crlf1(
    f'call :q "{nt}" ProductName_undo',
    f'reg delete "{nt}" /f >nul 2>nul','exit /b',
    ':q','(for /f "tokens=2*" %%R in (\'reg query "%~1" /v "%~2" 2^>nul\') do echo %~2=%%S)','exit /b'] + body))
+
+# --- the fetched-catalog version guard, verbatim, with the colour macros reduced to echo
+i = find(lambda l: l.startswith('if "%CAB%" equ "FETCH" if exist products.xml find '))
+open(f'{T}/guard.bat','wb').write(crlf1(
+  ['@echo off','set "<=echo"','set ">>="','set ">="','set "CAB=%~1"','set "VER=%~2"','set "VIS=%~3"',
+   'copy /y served%~4.xml products.xml >nul',
+   'ver >nul', L[i], L[i+1], 'if exist products.xml (echo KEPT) else (echo REFUSED)', 'del /f /q products.xml 2>nul']))
+for b in ('26300', '27100'):   # minimal catalogs in the real layout, one ESD entry for the served build
+  open(f'{T}/served{b}.xml','wb').write(crlf1(['<MCT>','  <File>',
+    f'    <FileName>{b}.9457.260913-1737.26h2_ge_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_en-us.esd</FileName>','  </File>','</MCT>']))
 PY
 
 # 1. every :choice-N branch defines a complete, self-consistent set of variables
 VERSIONS=$(cat "$T/versions.txt")
 IFS=',' read -ra VIDS <<< "$VERSIONS"
-[ "${#VIDS[@]}" -eq 14 ] && say "ok   version list has ${#VIDS[@]} entries" || bad "expected 14 versions, got ${#VIDS[@]}"
-for n in $(seq 1 14); do
+[ "${#VIDS[@]}" -eq 15 ] && say "ok   version list has ${#VIDS[@]} entries" || bad "expected 15 versions, got ${#VIDS[@]}"
+for n in $(seq 1 15); do
   out=$(cd "$T" && timeout 120 wine cmd /c "choices.bat $n" 2>/dev/null | tr -d '\r')
   ver=$(sed -n 's/^VER=\([0-9]*\) .*/\1/p' <<< "$out")
   vid=$(sed -n 's/^VER=[0-9]* VID=\([^ ]*\) .*/\1/p' <<< "$out")
@@ -116,7 +126,7 @@ for n in $(seq 1 14); do
   [[ "$cc" =~ ^[0-9]+\.[0-9] ]] || err="$err CC($cc)"
   [[ "$exe" == https://* ]] || err="$err EXE-not-https($exe)"
   # a catalog comes from a static https cab, the live FE3 fetch, or a pinned https xml carrying its sha256
-  [[ "$cab" == https://* || "$cab" == FETCH_25H2 || ( "$xml" == https://* && "$xmlsha" =~ ^[0-9a-f]{64}$ ) ]] \
+  [[ "$cab" == https://* || "$cab" == FETCH || ( "$xml" == https://* && "$xmlsha" =~ ^[0-9a-f]{64}$ ) ]] \
     || err="$err CAB($cab)/XML($xml $xmlsha)"
   [ -z "$err" ] && say "ok   choice-$n -> $vid  build $ver  catalog $cc" || bad "choice-$n:$err"
 done
@@ -155,6 +165,14 @@ grep -qx 'CompositionEditionID=Enterprise'   <<< "$rn" && say "ok   :rename Comp
 # (verified separately: direct !VAR! works, !%%v! yields empty). Untestable here, so only noted.
 grep -qx 'EditionID_undo=Core'               <<< "$rn" && say "ok   :rename keeps an undo copy" \
   || say "skip :rename undo copies (Wine cmd lacks indirect !%%v! expansion; real cmd.exe supports it)"
+
+# 5. a catalog fetched from FE3 must be for the chosen build - FE3 only serves the newest release, which is how
+#    11 25H2 once silently built 26H2 media. Static cabs and pinned xmls are not checked (their build is fixed).
+for c in 'FETCH 26300 26H2 26300 KEPT' 'FETCH 26300 26H2 27100 REFUSED' 'FETCH 26200 25H2 26300 REFUSED' 'https://x 26200 25H2 26300 KEPT'; do
+  read -r cab ver vis served want <<< "$c"
+  got=$(cd "$T" && timeout 120 wine cmd /c guard.bat "$cab" "$ver" "$vis" "$served" 2>/dev/null | tr -d '\r' | tail -1)
+  [ "$got" = "$want" ] && say "ok   catalog guard: $cab wants $ver, served $served -> $got" || bad "catalog guard: $cab wants $ver, served $served -> got $got, want $want"
+done
 
 [ $fail -eq 0 ] && say "ALL BATCH FUNCTION CHECKS PASSED" || say "SOME BATCH FUNCTION CHECKS FAILED"
 exit $fail
