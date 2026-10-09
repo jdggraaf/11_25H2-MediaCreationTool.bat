@@ -65,6 +65,7 @@ Features
   - The download is checked against the sha256 pinned in the script (`XMLSHA`) and discarded on mismatch; every ESD entry carries its own SHA256, which MCT verifies
   - Offline media is 26200.6899; Auto Upgrade with dynamic update (the default) still pulls the latest 25H2 cumulative update
   - Why not live: Microsoft's Update Metadata Service (FE3) returns only the newest catalog whatever the query asks for, which has been 26H2 (26300) since 29 Sep 2026
+- **Every catalog is integrity-checked**: the 13 static `products*.cab` downloads (1703 - 11 24H2) are pinned by sha256 (`CABSHA`), the 25H2 catalog by `XMLSHA`, the 26H2 one by the digest FE3 returns; a mismatch is discarded. The MediaCreationTool exe is Authenticode-checked before it runs
 - **Requirement bypass, refreshed for 24H2 / 25H2 / 26H2** (the mechanisms Rufus 4.6+ uses)
   - clean install: LabConfig `BypassTPMCheck` / `BypassSecureBootCheck` / `BypassRAMCheck` / `BypassCPUCheck` / `BypassStorageCheck` in the **windowsPE** pass of the boot.wim unattend, before setup's compatibility check
   - in-place upgrade (auto.cmd, and `bypass11/Skip_TPM_Check` for Windows Update): `AllowUpgradesWithUnsupportedTPMorCPU`, the `HwReqChkVars` answers (TPM 2, Secure Boot, 8 GB) and cleared AppCompatFlags markers - keeps files and apps
@@ -100,6 +101,15 @@ Finally, it sets recommended setup options with least amount of issues on upgrad
 >
 > Can even add a VL / MAK / retail product key in the same way to take care of licensing differences.  
 > The script also picks up any `$ISO$` folder in the current location - for $OEM$ branding, configuration, tweaks etc.  
+
+Troubleshooting  
+---------------  
+- **`ERROR` + "Check urls in browser | del ESD dir | ..."** - the MCT exe or the catalog did not arrive. Open the printed url in a browser; delete `C:\ESD` to clear cached downloads; make sure PowerShell 3.0+ is present and not blocked, and the BITS service is enabled
+- **"... sha256 mismatch - discarding"** - a download or a local `products_11_25H2.xml` did not match its pin. A proxy or AV that rewrites downloads causes this; a local catalog edited by hand is re-downloaded
+- **"Microsoft served a catalog that is not 26H2"** - Microsoft's update service (FE3) only hands out the newest release, so a newer Windows version has shipped. Choose that version if the script lists it, or get the latest script
+- **"MediaCreationTool...exe failed Authenticode signature check"** - the exe is not validly signed by Microsoft (corrupted, or replaced in transit). It is deleted; run again, on another network if it keeps failing
+- **"... is read-only or in use"** (Auto ISO) - the target ISO is open elsewhere (mounted, or a VM using it). Unmount / close it and run again
+- **"setup terminated unexpectedly"** - MCT or setup was closed before media was ready (`sources\ws.dat` missing), so the half-built folder is removed. Run again; setup's own logs, if it got that far, stay in `C:\$WINDOWS.~WS\Sources\Panther`
 
 Changelog  
 ---------  
@@ -167,6 +177,7 @@ _We did it! We broke [the previous gist](https://git.io/MediaCreationTool.bat)_ 
             25H2 dynamic CAB fetch from FE3 (respects LANGCODE for country detection)
             all issues ironed out; upgrade keeping files from Eval editions too; pickup $ISO$ dir content to add on media
             DU in 11: auto installs 22000.556 atm; older skip_11_checks, without Server label; Home offline local account
+2026.10.09: review fixes - bypass11/auto.cmd WinPE LabConfig loop never ran (single % in a script); the 13 static catalogs are now sha256-pinned (CABSHA) and CI keeps them pinned; a local products_11_25H2.xml is hash-checked like a download; "(latest)" in the version list no longer follows the preselected version; bypass11/AutoUnattend.xml and auto.cmd are re-synced with the generated ones and CI keeps them in sync; troubleshooting section
 2026.10.09: added Windows 11 26H2 (15 versions, new default), catalog fetched live from FE3; FETCH_25H2_CAB renamed FETCH_CAB; a fetched catalog whose build is not the chosen version is now refused
 2026.10.09: fixed 11 25H2 downloading 26H2 - FE3 now serves only the 26H2 catalog, so 25H2 uses the pinned 26200.6899 catalog products_11_25H2.xml (local copy first, else this repo, sha256-checked via XMLSHA)
 2026.09.20: catalog pinning - a version may carry the sha256 of its products*.cab (CABSHA) and DOWNLOAD discards a download that does not match; a 0-byte stub left by a dead transfer is no longer treated as a finished download. tests/pin-hashes.ps1 prints the values. CI now runs the whole test suite on every push

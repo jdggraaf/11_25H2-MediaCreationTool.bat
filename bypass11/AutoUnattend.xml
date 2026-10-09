@@ -5,20 +5,26 @@
     <UserData><ProductKey><Key>AAAAA-VVVVV-EEEEE-YYYYY-OOOOO</Key><WillShowUI>OnError</WillShowUI></ProductKey></UserData>
     <ComplianceCheck><DisplayReport>Never</DisplayReport></ComplianceCheck><Diagnostics><OptIn>false</OptIn></Diagnostics>
     <DynamicUpdate><Enable>true</Enable><WillShowUI>Never</WillShowUI></DynamicUpdate><EnableNetwork>true</EnableNetwork>
+    <!-- hardware requirement bypass must run in the windowsPE pass, before setup's compatibility check (same as rufus) -->
     <RunSynchronous>
-      <!-- Skip 11 Checks on Boot via reg - unreliable vs winsetup.dll patch used in MediaCreationTool.bat -->
       <RunSynchronousCommand wcm:action="add"><Order>1</Order>
-        <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassTPMCheck /d 1 /t reg_dword /f</Path></RunSynchronousCommand>
+        <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassTPMCheck /t reg_dword /d 1 /f</Path>
+      </RunSynchronousCommand>
       <RunSynchronousCommand wcm:action="add"><Order>2</Order>
-        <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassSecureBootCheck /d 1 /t reg_dword /f</Path></RunSynchronousCommand>
+        <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassSecureBootCheck /t reg_dword /d 1 /f</Path>
+      </RunSynchronousCommand>
       <RunSynchronousCommand wcm:action="add"><Order>3</Order>
-        <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassRAMCheck /d 1 /t reg_dword /f</Path></RunSynchronousCommand>
+        <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassRAMCheck /t reg_dword /d 1 /f</Path>
+      </RunSynchronousCommand>
       <RunSynchronousCommand wcm:action="add"><Order>4</Order>
-        <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassStorageCheck /d 1 /t reg_dword /f</Path></RunSynchronousCommand>
+        <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassCPUCheck /t reg_dword /d 1 /f</Path>
+      </RunSynchronousCommand>
       <RunSynchronousCommand wcm:action="add"><Order>5</Order>
-        <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassCPUCheck /d 1 /t reg_dword /f</Path></RunSynchronousCommand>
+        <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassStorageCheck /t reg_dword /d 1 /f</Path>
+      </RunSynchronousCommand>
       <RunSynchronousCommand wcm:action="add"><Order>6</Order>
-        <Path>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\HwReqChk" /f /v HwReqChkVars /t reg_multi_sz /s , /d "SQ_SecureBootCapable=TRUE,SQ_SecureBootEnabled=TRUE,SQ_TpmVersion=2,SQ_RamMB=8192"</Path></RunSynchronousCommand>
+        <Path>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\HwReqChk" /f /v HwReqChkVars /t reg_multi_sz /s , /d "SQ_SecureBootCapable=TRUE,SQ_SecureBootEnabled=TRUE,SQ_TpmVersion=2,SQ_RamMB=8192"</Path>
+      </RunSynchronousCommand>
     </RunSynchronous>
   </component></settings>  
   <settings pass="specialize"><component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" language="neutral"
@@ -39,6 +45,7 @@
       <RunSynchronousCommand wcm:action="add"><Order>4</Order>
         <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate /v ProductVersion /d "Windows 11" /t reg_sz /f</Path>
       </RunSynchronousCommand>
+      <!-- lets the installed system take future feature updates on unsupported TPM / CPU -->
       <RunSynchronousCommand wcm:action="add"><Order>5</Order>
         <Path>reg add HKLM\SYSTEM\Setup\MoSetup /v AllowUpgradesWithUnsupportedTPMorCPU /t reg_dword /d 1 /f</Path>
       </RunSynchronousCommand>

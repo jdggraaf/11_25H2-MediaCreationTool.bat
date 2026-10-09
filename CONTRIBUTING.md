@@ -54,10 +54,17 @@ link check weekly, because download links rot on their own), so a red check on G
 same failure you would see locally.
 
 `tests/pin-hashes.ps1` downloads each static `products*.cab` and prints its sha256 as a
-`set "CABSHA=..."` line to paste into that version's `:choice-N` block. Run it on a machine that
+`set "CABSHA=..."` line to paste into that version's `:choice-N` block, on the line right after its
+`CAB=` url; `tests/static-check.sh` fails if any static catalog is left unpinned. Run it on a machine that
 can reach `download.microsoft.com`; `-ListOnly` shows what it would fetch. Only the dated
 catalogs are pinned - the MCT exe is already gated by its Authenticode signature, and pinning it
 would break every time Microsoft re-signs.
+
+`bypass11/AutoUnattend.xml` and `bypass11/auto.cmd` are standalone copies of what the script
+generates (`:generate_AutoUnattend_xml`, `:generate_auto_cmd`). Change the generator first and copy
+the result over: `tests/static-check.sh` fails when they differ (for auto.cmd, from its first
+`pushd` on - the header carries the chosen preset). Remember that the generator's `%%` is literal
+in the `@' '@` here-string, so the copy keeps `%%` too.
 
 MCT and Windows setup themselves can still only be exercised on Windows.
 

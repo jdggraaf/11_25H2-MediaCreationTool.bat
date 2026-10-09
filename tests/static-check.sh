@@ -24,6 +24,19 @@ for f in products_*.xml; do
   [ "$pin" = "$(sha256sum "$f" | cut -d' ' -f1)" ] && say "ok   XMLSHA matches $f" || bad "XMLSHA for $f is [$pin], file hashes to $(sha256sum "$f" | cut -d' ' -f1)"
 done
 
+# 2c. Every static products*.cab in the version ladder carries a CABSHA pin on the line after it (tests/pin-hashes.ps1
+#     prints them); an unpinned catalog would be accepted unverified.
+unpinned=$(tr -d '\r' < MediaCreationTool.bat | awk '/^set "CAB=https:/{c=$0; getline; if ($0 !~ /^set "CABSHA=[0-9a-f]{64}"$/) print c}')
+[ -z "$unpinned" ] && say "ok   every static catalog has a CABSHA pin" || bad "catalog without CABSHA: $unpinned"
+
+# 2d. The standalone bypass11 copies must match what the script generates: AutoUnattend.xml byte for byte, auto.cmd from
+#     its first command on (the generated header carries the chosen preset). They drifted once and auto.cmd broke.
+diff -q <(awk '/^<unattend /{p=1} p{print} /^<\/unattend>/{p=0}' MediaCreationTool.bat | tr -d '\r') <(tr -d '\r' < bypass11/AutoUnattend.xml) >/dev/null \
+  && say "ok   bypass11/AutoUnattend.xml matches the generated unattend" || bad "bypass11/AutoUnattend.xml differs from the unattend MediaCreationTool.bat generates"
+diff -q <(tr -d '\r' < MediaCreationTool.bat | sed -n '/^:generate_auto_cmd /,/^.@; \[io.file\]::WriteAllText(.auto.cmd/p' | sed -n '/^pushd "%~dp0"/,$p' | sed '$d' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}') \
+         <(tr -d '\r' < bypass11/auto.cmd | sed -n '/^pushd "%~dp0"/,$p' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}') >/dev/null \
+  && say "ok   bypass11/auto.cmd matches the generated auto.cmd" || bad "bypass11/auto.cmd differs from the auto.cmd MediaCreationTool.bat generates"
+
 # 3. Embedded unattend XML inside MediaCreationTool.bat (between <?xml and </unattend>).
 tmp=$(mktemp)
 awk '/^<unattend /{p=1} p{print} /^<\/unattend>/{p=0}' MediaCreationTool.bat | tr -d '\r' > "$tmp"

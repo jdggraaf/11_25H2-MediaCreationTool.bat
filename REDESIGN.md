@@ -83,8 +83,8 @@ Loaded from the script folder before argument parsing (commandline and script na
 ## Roadmap (not implemented, in order of value)
 
 1. **Integrity pinning** - mechanism done: `DOWNLOAD` takes an optional sha256 and discards a mismatch (cached copies are
-   re-verified too); each `:choice-N` block may set `CABSHA`. Still to do: populate the 13 values with `tests/pin-hashes.ps1`
-   from a machine that can reach the CDN. The exe is deliberately not pinned - Authenticode already gates it.
+   re-verified too). Done October 2026: all 13 static catalogs carry `CABSHA` (from `tests/pin-hashes.ps1`) and
+   `tests/static-check.sh` fails on an unpinned one. The exe is deliberately not pinned - Authenticode already gates it.
 2. **Pre-flight page in the window**: TPM/CPU/SSE4.2/POPCNT/disk space summary with a plain-language verdict before Start.
 3. **Local-account option** (checkbox) that sets `HideOnlineAccountScreens` in the unattend for people who want it,
    independent of the BypassNRO registry trick.
@@ -99,14 +99,14 @@ Loaded from the script folder before argument parsing (commandline and script na
 - `tests/static-check.sh` (Linux/macOS): CRLF, XML, labels, snippet markers, brace balance, https-first, and with `pwsh`
   a real parse of every embedded PowerShell snippet. All pass on this branch.
 - `tests/dialog-mock/run.ps1` (any OS with `pwsh`): executes the real `SETUP_GUI` function against a mock WinForms layer.
-  12 scenarios pass: defaults, cancel, preselection from env/ini, list + radio + key + remember, greying-out for Select and
-  MCT Defaults, key and language validation, every control inside the client area, list labels.
+  13 scenarios pass: defaults, cancel, preselection from env/ini, list + radio + key + remember, greying-out for Select and
+  MCT Defaults, key and language validation, every control inside the client area, list labels, "(latest)" placement.
 - `tests/func-mock/*.ps1` (any OS with `pwsh`): the remaining PowerShell functions run against mocked dependencies.
   112 assertions pass - `DOWNLOAD` (9: fallback order, https-first, short-circuits), `WIM_INFO` (14: all four output
   modes, arch table), `FETCH_CAB` (31: request shape, country/version derivation, response shapes, SHA256 check),
   `PRODUCTS_XML` (32: catalog wrapping, EULAs, labels, pruning, unhiding, edition clones), `CHOICES`/`CHOICES2` (26:
   index maths, cancel, loop-back).
-- `tests/batch-func-check.sh` (Linux with Wine): every `:choice-N` branch (all 14 agree with the version alias table),
+- `tests/batch-func-check.sh` (Linux with Wine): every `:choice-N` branch (all 15 agree with the version alias table),
   `:save_ini`, `:reg_query` (against a stub `reg`, since Wine's own has no `/se`) and `:rename`.
 - `tests/wine-cmd-check.sh` (Linux with Wine): the ini loader, version resync, elevation token builder, dynamic-update
   substitution and the `help` block run under Wine's `cmd.exe` and pass. Wine's cmd cannot parse `&` inside a for-body or

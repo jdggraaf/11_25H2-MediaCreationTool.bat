@@ -30,6 +30,7 @@ Already have a 11 ISO, USB or extracted Files and want to add a bypass
 Use [Quick_11_iso_esd_wim_TPM_toggle.bat](Quick_11_iso_esd_wim_TPM_toggle.bat) from the confort of right-click - SendTo menu  
 
 Switches installation type to Server skipping install checks, or back to Client if run again on the same file, restoring hash!  
+_On 24H2 and newer (build 26100+) media the Server label greys out **keep personal files and apps** on an in-place upgrade - use it there for clean installs only, or upgrade with [auto.cmd](auto.cmd) / [Skip_TPM_Check_on_Dynamic_Update.cmd](Skip_TPM_Check_on_Dynamic_Update.cmd) instead_  
 **directly** on any downloaded windows 11 iso or extracted esd and wim, so there's no iso / dism mounting  
 _defiantly quick_  
 
@@ -53,7 +54,7 @@ Offline local account on 11 Home / Pro
 [MediaCreationTool.bat](../MediaCreationTool.bat) creates media that re-enables the *I dont have internet* OOBE choice (OOBE\BypassNRO)  
 It does so via [AutoUnattend.xml](AutoUnattend.xml), inserted into `boot.wim` to not cause setup.exe issues under windows  
 More conveniently can be placed at the root of 11 media, along with [auto.cmd](auto.cmd) to use for upgrades  
-Should work with any 11 Release (22000.x) or Dev (22xxx.x) media - and it hides unsupported PC nags as a bonus ;)  
+Should work with any 11 media from 21H2 (22000) through 26H2 (26300) - and it hides unsupported PC nags as a bonus ;)  
 _If you have already connected at OOBE, can try email: `a` password: `a` to switch to local account_  
 
 Manage and troubleshoot Windows Update on any windows version and edition  

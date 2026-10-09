@@ -6,6 +6,9 @@
 :: 25H2 uses its own pinned catalog (26200.6899) - FE3 only ever serves the newest release
 :: TPM Bypass Enhancements with HwReqChk, LabConfig, and MoSetup registry configurations
 :: Changelog: 2026.10.09
+:: - review fixes: bypass11\auto.cmd WinPE LabConfig loop never ran (single %); the 13 static catalogs are now sha256-pinned;
+::   a products_11_25H2.xml next to the script is hash-checked like a download; "(latest)" no longer follows the preselection;
+::   bypass11\AutoUnattend.xml re-synced with the generated one
 :: - added Windows 11 26H2 (15 versions, new default): catalog fetched live from FE3; FETCH_25H2_CAB is now FETCH_CAB, and a
 ::   fetched catalog whose build is not the chosen version is refused (so a future 27H2 cannot pass as 26H2)
 :: - fixed: 11 25H2 downloaded 26H2 - Microsoft's update metadata service (FE3) now serves only the 26H2 catalog, so
@@ -187,8 +190,8 @@ if %MCT%0 gtr 1 if %PRE%0 lss 1 goto choice-0 = cancel
 set "CABSHA=" & set "XMLSHA="
 goto choice-%MCT%
 
-::# a choice may set CABSHA to the sha256 of its products*.cab - dated catalogs never change once published, so DOWNLOAD
-::# can discard a download that does not match. tests/pin-hashes.ps1 prints the values on a machine that can reach the urls.
+::# each static products*.cab is pinned by CABSHA - dated catalogs never change once published, so DOWNLOAD discards a
+::# download that does not match. tests/pin-hashes.ps1 prints the values on a machine that can reach the urls.
 :choice-15
 set "VER=26300" & set "VID=11_26H2" & set "CB=26300.9457.260913-1737.26h2_ge_release_svc_refresh" & set "CT=2026/09/" & set "CC=2.1"
 ::# no static 26H2 cab exists: FETCH_CAB asks FE3, which serves the newest release only - the build is checked after expand
@@ -199,45 +202,50 @@ goto process ::# windows 11 26H2
 :choice-14
 set "VER=26200" & set "VID=11_25H2" & set "CB=26200.6899.251011-1532.25h2_ge_release_svc_refresh" & set "CT=2025/10/" & set "CC=2.1"
 ::# FE3 (FETCH_CAB) returns the newest catalog for any query - 26H2 (26300) since 2026-09-29 - so 25H2 uses a pinned
-::# catalog instead: products_11_25H2.xml next to the script, else the same file from this repo, checked against XMLSHA
+::# catalog instead: products_11_25H2.xml next to the script, else the same file from this repo - either way checked by XMLSHA
 set "XML=https://raw.githubusercontent.com/jdggraaf/11_25H2-MediaCreationTool.bat/a8c151c97fbf3fa5e8e77a7f28ebadc315c2cb09/products_11_25H2.xml" & set "XMLSHA=8de94fa2e868588ad527315744d7b6bb43d6c088e04d8866c317295abb985704"
-if exist "%ROOT%\products_11_25H2.xml" set "XML=%ROOT%\products_11_25H2.xml"
 set "EXE=https://download.microsoft.com/download/0a8b07d9-a3bf-47b9-b71b-8e13354cec88/MediaCreationTool.exe"
 goto process ::# windows 11 25H2
 
 :choice-13
 set "VER=26100" & set "VID=11_24H2" & set "CB=26100.4349.250607-1500.ge_release_svc_refresh" & set "CT=2025/06/" & set "CC=2.0"
 set "CAB=https://download.microsoft.com/download/8e0c23e7-ddc2-45c4-b7e1-85a808b408ee/Products-Win11-24H2-6B.cab"
+set "CABSHA=ba2cf7e6024ebd4aed58b387b4ddf41cb18b87d32fa8b044884701ee2568c9ae"
 set "EXE=https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/mediacreationtool.exe"
 goto process ::# windows 11 24H2
 
 :choice-12
 set "VER=22631" & set "VID=11_23H2" & set "CB=22631.2861.231204-0538.23H2_ni_release_svc_refresh" & set "CT=2023/12/" & set "CC=2.0"
 set "CAB=https://download.microsoft.com/download/6/2/b/62b47bc5-1b28-4bfa-9422-e7a098d326d4/products_win11_20231208.cab"
+set "CABSHA=6c250a83c976c7e47c5187045d3701917b1638069b0492e8d0b1fc546c23cb7e"
 set "EXE=https://download.microsoft.com/download/e/c/d/ecd532eb-bed0-465a-9b7a-330066bec3ce/MediaCreationTool_Win11_23H2.exe"
 goto process ::# refreshed 22621 base with integrated 23H2 enablement package
 
 :choice-11
 set "VER=22621" & set "VID=11_22H2" & set "CB=22621.1702.230505-1222.ni_release_svc_refresh" & set "CT=2023/05/" & set "CC=2.0"
 set "CAB=https://download.microsoft.com/download/b/1/9/b19bd7fd-78c4-4f88-8c40-3e52aee143c2/products_win11_20230510.cab.cab"
+set "CABSHA=03e013d0a23bc0285742e3fb07ba278195554b1d19fa2ea26929e9aee8419541"
 set "EXE=https://software-static.download.prss.microsoft.com/dbazure/988969d5-f34g-4e03-ac9d-1f9786c66749/mediacreationtool.exe"
 goto process ::# windows 11 22H2
 
 :choice-10
 set "VER=22000" & set "VID=11_21H2" & set "CB=22000.318.211104-1236.co_release_svc_refresh" & set "CT=2021/11/" & set "CC=2.0"
 set "CAB=https://download.microsoft.com/download/1/b/4/1b4e06e2-767a-4c9a-9899-230fe94ba530/products_Win11_20211115.cab"
+set "CABSHA=d62314057230156aaa228b5f01c52b79f47ab77ce7bdbdf808f9f0b16aee6683"
 set "EXE=https://software-download.microsoft.com/download/pr/888969d5-f34g-4e03-ac9d-1f9786c69161/MediaCreationToolW11.exe"
 goto process ::# windows 11 : usability and ui downgrade, and even more ChrEdge bloat (but somewhat snappier multitasking)
 
 :choice-9
 set "VER=19045" & set "VID=22H2" & set "CB=19045.3803.231204-0204.22h2_release_svc_refresh" & set "CT=2023/12/" & set "CC=1.4.1"
 set "CAB=https://download.microsoft.com/download/7/9/c/79cbc22a-0eea-4a0d-89c0-054a1b3aa8e0/products.cab"
+set "CABSHA=7677dd6247c5768737b643911894374939aac5ae2dea158c272511fdd2ac52bf"
 set "EXE=https://download.microsoft.com/download/9/e/a/9eac306f-d134-4609-9c58-35d1638c2363/MediaCreationTool_22H2.exe"
 goto process ::# refreshed 19041 base with integrated 22H2 enablement package - current
 
 :choice-8
 set "VER=19044" & set "VID=21H2" & set "CB=19044.1288.211006-0501.21h2_release_svc_refresh" & set "CT=2021/11/" & set "CC=1.4.1"
 set "CAB=https://download.microsoft.com/download/3/9/6/396ae429-afb2-49da-81d8-c16c6782d082/products_Win10_20211115.cab"
+set "CABSHA=fcb07ce32fc3b52856dd3010f5dbfa322b16d1d5200ef7827d75561d00b6d853"
 set "EXE=https://download.microsoft.com/download/b/0/5/b053c6bc-fc07-4785-a66a-63c5aeb715a9/MediaCreationTool21H2.exe"
 goto process ::# refreshed 19041 base with integrated 21H2 enablement package
 
@@ -245,6 +253,7 @@ goto process ::# refreshed 19041 base with integrated 21H2 enablement package
 set "VER=19043" & set "VID=21H1" & set "CB=19043.1288.211006-0459.21h1_release_svc_refresh" & set "CT=2021/10/" & set "CC=1.4.1"
 if %INSERT_BUSINESS%0 gtr 1 set "CB=19043.1348.211103-2252.21h1_release_svc_refresh" & set "CT=2021/11/"
 set "CAB=https://download.microsoft.com/download/8/3/e/83e5badb-90bd-45c0-b868-28ada88230a0/products_win10_20211029.cab"
+set "CABSHA=9db61de46d5bce49bfc0d2d01ed1d737aea7f3308fa2fe3376484f0eb58a58fe"
 set "EXE=https://download.microsoft.com/download/d/5/2/d528a4e0-03f3-452d-a98e-3e479226d166/MediaCreationTool21H1.exe"
 goto process ::# refreshed 19041 base with integrated 21H1 enablement package - newest (get this, then 19044 via WU ep of few kb)
 
@@ -252,6 +261,7 @@ goto process ::# refreshed 19041 base with integrated 21H1 enablement package - 
 set "VER=19042" & set "VID=20H2" & set "CB=19042.631.201119-0144.20h2_release_svc_refresh" & set "CT=2020/11/" & set "CC=1.4.1"
 if %INSERT_BUSINESS%0 gtr 1 set "CB=19042.1052.210606-1844.20h2_release_svc_refresh" & set "CT=2021/07/"
 set "CAB=https://download.microsoft.com/download/4/3/0/430e9adb-cf08-4b68-9032-eafca8378d42/products_20201119.cab"
+set "CABSHA=d1b89477e41ce09567945ee9e42b14becfa2ed8f50cad5a0e2d85a81cd89ef73"
 set "EXE=https://download.microsoft.com/download/4/c/c/4cc6c15c-75a5-4d1b-a3fe-140a5e09c9ff/MediaCreationTool20H2.exe"
 goto process ::# refreshed 19041 base with integrated 20H2 enablement package to mainly bundle ChrEdge
 
@@ -259,6 +269,7 @@ goto process ::# refreshed 19041 base with integrated 20H2 enablement package to
 set "VER=19041" & set "VID=20H1" & set "CB=19041.508.200907-0256.vb_release_svc_refresh" & set "CT=2020/09/" & set "CC=1.4"
 if %INSERT_BUSINESS%0 gtr 1 set "CB=19041.572.201009-1946.vb_release_svc_refresh" & set "CT=2020/11/"
 set "CAB=https://download.microsoft.com/download/7/4/4/744ccd60-3203-4eea-bfa2-4d04e18a1552/products.cab"
+set "CABSHA=bde0c4c59eca81e6a9b2f4bdad85a117b1f2a5809f1d3905789b225874f588cf"
 set "EXE=https://software-download.microsoft.com/download/pr/8d71966f-05fd-4d64-900b-f49135257fa5/MediaCreationTool2004.exe"
 goto process ::# visible improvements to windows update, defender, search, dx12, wsl, sandbox
 
@@ -266,18 +277,21 @@ goto process ::# visible improvements to windows update, defender, search, dx12,
 set "VER=18363" & set "VID=19H2" & set "CB=18363.592.200109-2016.19h2_release_svc_refresh" & set "CT=2020/01/" & set "CC=1.3"
 if %INSERT_BUSINESS%0 gtr 1 set "CB=18363.1139.201008-0514.19h2_release_svc_refresh" & set "CT=2020/11/"
 set "CAB=https://download.microsoft.com/download/8/2/b/82b12fa5-cab6-4d37-8167-16630c6151eb/products_20200116.cab"
+set "CABSHA=91eb2146af90bf0d47e43335b8365bdbc3413b39864e35bcf3e30b28d6d36bd4"
 set "EXE=https://download.microsoft.com/download/c/0/b/c0b2b254-54f1-42de-bfe5-82effe499ee0/MediaCreationTool1909.exe"
 goto process ::# refreshed 18362 base with integrated 19H2 enablement package to activate usability and security fixes
 
 :choice-3
 set "VER=18362" & set "VID=19H1" & set "CB=18362.356.190909-1636.19h1_release_svc_refresh" & set "CT=2019/09/" & set "CC=1.3"
 set "CAB=https://download.microsoft.com/download/4/e/4/4e491657-24c8-4b7d-a8c2-b7e4d28670db/products_20190912.cab"
+set "CABSHA=92f40a112595550a226c18edaa32d940a807b461ec18a0f0836317cd42c866b8"
 set "EXE=https://download.microsoft.com/download/9/8/8/9886d5ac-8d7c-4570-a3af-e887ce89cf65/MediaCreationTool1903.exe"
 goto process ::# modern windows 10 starts here with proper memory allocation, cpu scheduling, security features
 
 :choice-2
 set "VER=16299" & set "VID=1709" & set "CB=16299.125.171213-1220.rs3_release_svc_refresh" & set "CT=2018/01/" & set "CC=1.1"
 set "CAB=https://download.microsoft.com/download/3/2/3/323D0F94-95D2-47DE-BB83-1D4AC3331190/products_20180105.cab"
+set "CABSHA=09bf9ccae7a03783a6fab00edf82a7698f21ca16f5ff00bfffabd7e544a75582"
 set "EXE=https://download.microsoft.com/download/A/B/E/ABEE70FE-7DE8-472A-8893-5F69947DE0B1/MediaCreationTool.exe"
 goto process ::# plagued by standby and other memory allocation bugs, fullscreen optimization issues, worst windows 10 ver by far
 
@@ -287,6 +301,7 @@ if %INSERT_BUSINESS%0 gtr 1 set "CB=15063.0.170710-1358.rs2_release_svc_refresh"
 rem set "XML=https://download.microsoft.com/download/2/E/B/2EBE3F9E-46F6-4DB8-9C84-659F7CCEDED1/products20170727.xml"
 rem above refreshed xml often fails decrypting dual x86 + x64 - using rtm instead; the added enterprise + cloud are refreshed
 set "CAB=https://download.microsoft.com/download/9/5/4/954415FD-D9D7-4E1F-8161-41B3A4E03D5E/products_20170317.cab"
+set "CABSHA=54cd2b12e3f993eee52f17aae2a9dfb13bc1543f675392562be2c6a202bd5564"
 set "EXE=https://download.microsoft.com/download/1/F/E/1FE453BE-89E0-4B6D-8FF8-35B8FA35EC3F/MediaCreationTool.exe"
 goto process ::# some gamers still find it the best despite unfixed memory allocation bugs and exposed cpu flaws; can select Cloud
 
@@ -454,6 +469,8 @@ echo;
 
 ::# download MCT and CAB / XML - new snippet to try via bits, net, certutil, and insecure/secure
 if defined EXE echo;%EXE% & call :DOWNLOAD "%EXE%" MediaCreationTool%VID%.exe
+::# a pinned catalog next to the script seeds the download: DOWNLOAD keeps it only if it matches XMLSHA, else fetches it
+if defined XMLSHA if exist "%ROOT%\products_%VID%.xml" copy /y "%ROOT%\products_%VID%.xml" products%VID%.xml >nul 2>nul
 if defined XML if exist "%XML%" (echo;%XML% & copy /y "%XML%" products.xml >nul 2>nul) else (echo;%XML% & call :DOWNLOAD "%XML%" products%VID%.xml "" "%XMLSHA%")
 if defined CAB (
   if "%CAB%" equ "FETCH" (echo;Fetching %VIS% CAB from Microsoft & call :FETCH_CAB) else (echo;%CAB% & call :DOWNLOAD "%CAB%" products%VID%.cab "" "%CABSHA%")
@@ -1216,7 +1233,7 @@ function SETUP_GUI {
  $lb = Ctl ListBox @{Location='16,36'; Size='230,350'; Font=$mono; IntegralHeight=$false}
  for ($i = $vids.Count - 1; $i -ge 0; $i--) {
   $v = $vids[$i]; $lbl = if ($v -like '11_*') { 'Windows 11 ' + $v.Substring(3) } else { 'Windows 10 ' + $v }
-  if ($i -eq ($dV - 1)) { $lbl += '   (latest)' }; [void]$lb.Items.Add($lbl)
+  if ($i -eq ($vids.Count - 1)) { $lbl += '   (latest)' }; [void]$lb.Items.Add($lbl)
  }
  $lb.SelectedIndex = $vids.Count - $dV
  [void](Ctl Label @{Text='Newest first. Upgrades always get the latest build of the chosen version. Windows 10 support ended 14 Oct 2025 (ESU until 13 Oct 2026).'; Location='16,392'; Size='230,100'; ForeColor='DimGray'})

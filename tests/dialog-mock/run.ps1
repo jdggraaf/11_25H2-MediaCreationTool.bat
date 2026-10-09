@@ -28,6 +28,7 @@ Check 'defaults (26H2, Select)'          (Run 15 4 '' '' '' '' '' '')           
 Check 'cancel'                            (Run 15 4 '' '' '' '' '' '' 'Cancel')                 '0 0 - - - - - - -'
 Check 'env preselect Enterprise de-DE x86 no_update def' (Run 15 1 'Enterprise' 'de-DE' 'x86' '' '1' 'def') '15 1 Enterprise de-DE x86 - no_update def -'
 Check 'preselect ini version 9 (22H2) + AUTO' (Run 9 1 '' '' '' '' '' '')                          '9 1 - - - - - - -'
+Check '(latest) stays on the newest when another is preselected' ((Run 9 4 '' '' '' '' '' '' 'OK' { param($f,$lb) $script:items = @($lb.Items) }) + ' | ' + $script:items[0] + ' | ' + $script:items[6]) '9 4 - - - - - - - | Windows 11 26H2   (latest) | Windows 10 22H2'
 Check 'pick oldest via list + USB + key + save' (Run 15 4 '' '' '' '' '' '' 'OK' { param($f,$lb,$rbs,$cbE,$cbL,$cbA,$tbK,$ckU,$ckX,$ckS,$ok)
    $lb.SelectedIndex = $lb.Items.Count - 1; $rbs[3].Checked=$false; $rbs[2].Checked=$true; $rbs[2].FireCheckedChanged(); $tbK.Text='VK7JG-NPHTM-C97JM-9MPGT-3V66T'; $tbK.FireTextChanged(); $ckS.Checked=$true }) '1 3 - - - VK7JG-NPHTM-C97JM-9MPGT-3V66T - - save'
 Check 'Select greys out edition (value dropped)' (Run 15 1 'Enterprise' 'de-DE' '' '' '' '' 'OK' { param($f,$lb,$rbs,$cbE,$cbL,$cbA,$tbK,$ckU,$ckX,$ckS,$ok)
