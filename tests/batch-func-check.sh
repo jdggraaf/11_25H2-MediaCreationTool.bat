@@ -26,7 +26,7 @@ ladder = L[first:last]
 open(f'{T}/choices.bat','wb').write(crlf(
   ['@echo off','setlocal enabledelayedexpansion','set "INSERT_BUSINESS="','goto choice-%1'] + ladder +
   [':choice-0','echo CANCELED','exit /b',
-   ':process','echo VER=%VER% VID=%VID% CB=%CB% CT=%CT% CC=%CC%','echo EXE=%EXE%','echo CAB=%CAB%','exit /b']))
+   ':process','echo VER=%VER% VID=%VID% CB=%CB% CT=%CT% CC=%CC%','echo EXE=%EXE%','echo CAB=%CAB%','echo XML=%XML%','echo XMLSHA=%XMLSHA%','exit /b']))
 
 # --- the version list, so the ladder can be cross-checked against what the dialog offers
 vline = L[find(lambda l: l.startswith('set VERSIONS='))]
@@ -104,6 +104,7 @@ for n in $(seq 1 14); do
   ct=$(sed -n 's/.* CT=\([^ ]*\) .*/\1/p' <<< "$out")
   cc=$(sed -n 's/.* CC=\(.*\)$/\1/p' <<< "$out")
   exe=$(sed -n 's/^EXE=//p' <<< "$out"); cab=$(sed -n 's/^CAB=//p' <<< "$out")
+  xml=$(sed -n 's/^XML=//p' <<< "$out"); xmlsha=$(sed -n 's/^XMLSHA=//p' <<< "$out")
   # the branch may set either alias for this index (e.g. 1903 or 19H1) - both are accepted by the parser
   aliases=$(awk -v k="$n" '$1==k {$1=""; print}' "$T/alias.txt")
   err=""
@@ -114,7 +115,9 @@ for n in $(seq 1 14); do
   [[ "$ct" =~ ^[0-9]{4}/[0-9]{2}/$ ]] || err="$err CT($ct)"
   [[ "$cc" =~ ^[0-9]+\.[0-9] ]] || err="$err CC($cc)"
   [[ "$exe" == https://* ]] || err="$err EXE-not-https($exe)"
-  [[ "$cab" == https://* || "$cab" == FETCH_25H2 ]] || err="$err CAB($cab)"
+  # a catalog comes from a static https cab, the live FE3 fetch, or a pinned https xml carrying its sha256
+  [[ "$cab" == https://* || "$cab" == FETCH_25H2 || ( "$xml" == https://* && "$xmlsha" =~ ^[0-9a-f]{64}$ ) ]] \
+    || err="$err CAB($cab)/XML($xml $xmlsha)"
   [ -z "$err" ] && say "ok   choice-$n -> $vid  build $ver  catalog $cc" || bad "choice-$n:$err"
 done
 

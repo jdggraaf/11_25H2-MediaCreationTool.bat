@@ -2,7 +2,7 @@
 # `set "CABSHA=..."` lines, so DOWNLOAD can discard a catalog that does not match.
 #
 # Needs a machine that can reach download.microsoft.com. Only the dated catalogs are listed: the
-# 25H2 entry is fetched live from the metadata service and verified against the digest it returns.
+# 25H2 entry uses the repo's products_11_25H2.xml, pinned by XMLSHA (tests/static-check.sh checks it).
 #
 #   pwsh -File tests/pin-hashes.ps1              download each catalog and print its pin
 #   pwsh -File tests/pin-hashes.ps1 -ListOnly    just print what would be fetched (no network)

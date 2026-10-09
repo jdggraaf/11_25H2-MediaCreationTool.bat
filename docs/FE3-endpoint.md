@@ -1,4 +1,14 @@
-# Microsoft FE3 update-metadata endpoint (how FETCH_25H2_CAB gets the 25H2 catalog)
+# Microsoft FE3 update-metadata endpoint (FETCH_25H2_CAB)
+
+> **2026-10-09: 25H2 no longer uses FE3.** Since Windows 11 26H2 shipped (29 Sep 2026) FE3 returns the 26H2 catalog
+> (`26300.9457.260913-1737.26h2_ge_release_svc_refresh`, update id `ff4a40ae-2555-463f-aa41-79b38dca930c`) for every
+> query, so the 25H2 choice was downloading 26H2. Re-probed live: `V=26100`, `V=26200`, `V=26200.6899` and `V=26300` all
+> return that same file, adding `TargetReleaseVersion=1;TargetReleaseVersionInfo=25H2` or `ReleaseType=25H2` or retail
+> `ge_release` attributes changes nothing, and `V=26400` returns nothing. None of the attributes tried selects an older
+> release. The 25H2 MCT exe itself only knows the same FE3 query (`SetupMgr.dll`), and its fwlink fallback
+> (`LinkId=2156292`) still points at the 24H2 cab. So 25H2 now uses the pinned catalog `products_11_25H2.xml`
+> (26200.6899, ESD links checked live on 2026-10-09). `FETCH_25H2_CAB` stays in the script for a 26H2 entry; FE3 only
+> ever serves the newest release. Everything below is the original 2026-09-13 research.
 
 Researched and probed live on 2026-09-13. FE3 = Microsoft's internet-facing Update Metadata
 Service (a.k.a. DCAT). The script's `FETCH_25H2_CAB` uses it because Microsoft has not published

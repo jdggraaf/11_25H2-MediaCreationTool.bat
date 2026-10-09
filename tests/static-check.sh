@@ -7,7 +7,7 @@ say() { printf '%s\n' "$*"; }
 bad() { say "FAIL: $*"; fail=1; }
 
 # 1. CRLF: every line of every .bat/.cmd/.xml must end in CRLF (cmd.exe misparses LF-only labels/parens).
-for f in MediaCreationTool.bat bypass11/*.bat bypass11/*.cmd bypass11/*.xml; do
+for f in MediaCreationTool.bat bypass11/*.bat bypass11/*.cmd bypass11/*.xml products_*.xml; do
   lines=$(grep -c '' "$f"); crlf=$(grep -c $'\r$' "$f")
   [ "$lines" -eq "$crlf" ] && say "ok   CRLF $f ($lines lines)" || bad "CRLF mismatch in $f: $crlf of $lines lines"
   grep -q $'\r\r' "$f" && bad "double CR in $f"
@@ -15,6 +15,14 @@ done
 
 # 2. XML well-formedness of the standalone unattend file.
 xmllint --noout bypass11/AutoUnattend.xml && say "ok   xmllint bypass11/AutoUnattend.xml" || bad "AutoUnattend.xml not well-formed"
+
+# 2b. Pinned catalogs: well-formed, and the XMLSHA the script pins for each one matches the file in the repo
+#     (DOWNLOAD discards a mismatch, so a catalog edited without re-pinning would break that version).
+for f in products_*.xml; do
+  xmllint --noout "$f" && say "ok   xmllint $f" || bad "$f not well-formed"
+  pin=$(tr -d '\r' < MediaCreationTool.bat | grep -F "/$f\"" | grep -oE 'XMLSHA=[0-9a-f]{64}' | cut -d= -f2)
+  [ "$pin" = "$(sha256sum "$f" | cut -d' ' -f1)" ] && say "ok   XMLSHA matches $f" || bad "XMLSHA for $f is [$pin], file hashes to $(sha256sum "$f" | cut -d' ' -f1)"
+done
 
 # 3. Embedded unattend XML inside MediaCreationTool.bat (between <?xml and </unattend>).
 tmp=$(mktemp)

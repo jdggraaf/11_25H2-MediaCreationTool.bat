@@ -73,7 +73,7 @@ Loaded from the script folder before argument parsing (commandline and script na
 | Fact | Effect on the tool |
 |---|---|
 | Windows 11 26H1 (build 28000) ships preinstalled only, no upgrade path, no MCT media | Not added to the version list. The old hardcoded `MediaVersion 10.0.28000.1340` in the CAB query was a 26H1 build; it is now derived from the chosen release. |
-| Windows 11 26H2 is an enablement package on the 24H2/25H2 branch, GA expected around October 2026 | Add as `:choice-20` once Microsoft publishes its MCT catalog; the CAB fetch is already parameterised by `CB`. |
+| Windows 11 26H2 (build 26300) is an enablement package on the 24H2/25H2 branch; released 29 Sep 2026 | FE3 now returns only the 26H2 catalog, so 25H2 moved to the pinned `products_11_25H2.xml` (October 2026). A 26H2 entry can use the FE3 fetch, which is already parameterised by `CB`. |
 | Media Creation Tool still creates x64 media only, no ARM64 | Architecture list stays x64/x86; ARM64 would need the ISO download page, out of scope. |
 | Windows 10 support ended 14 Oct 2025, consumer ESU ends 13 Oct 2026 | Stated in the window and README; Windows 10 versions stay available for repair/ISO use. |
 | `AllowUpgradesWithUnsupportedTPMOrCPU` still works but 25H2 needs `HwReqChk` alongside it | Both already set by `auto.cmd`, the WinPE path and the unattend; key path fixed. |
@@ -88,7 +88,8 @@ Loaded from the script folder before argument parsing (commandline and script na
 2. **Pre-flight page in the window**: TPM/CPU/SSE4.2/POPCNT/disk space summary with a plain-language verdict before Start.
 3. **Local-account option** (checkbox) that sets `HideOnlineAccountScreens` in the unattend for people who want it,
    independent of the BypassNRO registry trick.
-4. **26H2 catalog entry** when available; generalise `FETCH_25H2_CAB` into `FETCH_CAB` taking `VER`/`CB` from the choice block.
+4. **26H2 catalog entry** (26H2 is out); point it at FE3 and generalise `FETCH_25H2_CAB` into `FETCH_CAB` taking `VER`/`CB`
+   from the choice block. FE3 only serves the newest release, so pin each older one's catalog once it stops being newest.
 5. **Log file** (`C:\ESD\mct.log`) appended by the download, CAB fetch and assisted-MCT stages for post-mortem support.
 6. **Split the file**: keep one distributable `.bat`, but build it from `src/*.ps1` + `src/*.cmd` with a tiny script, so the
    PowerShell parts can be linted and unit-tested with Pester on Windows CI.

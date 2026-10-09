@@ -2,8 +2,11 @@
 :Universal MCT wrapper script for all Windows 10/11 versions from 1703 to 25H2!
 :: Nothing but Microsoft-hosted source links and no third-party tools; script just configures an xml and starts MCT
 :: Ingenious support for business editions (Enterprise / VL) selecting language, x86, x64 or AiO inside the MCT GUI
-:: 25H2 CAB dynamically fetched from Microsoft Update Metadata Service with LANGCODE support
+:: 25H2 uses its own pinned catalog (26200.6899) - Microsoft's update metadata service now only serves 26H2
 :: TPM Bypass Enhancements with HwReqChk, LabConfig, and MoSetup registry configurations
+:: Changelog: 2026.10.09
+:: - fixed: 11 25H2 downloaded 26H2 - Microsoft's update metadata service (FE3) now serves only the 26H2 catalog, so
+::   25H2 uses a pinned 26200.6899 catalog (products_11_25H2.xml beside the script, else from this repo, sha256-checked)
 :: Changelog: 2026.09.12 stable
 :: - redesigned setup: one window for version, action and media options (edition, language, arch, key, dynamic update, extras)
 :: - MediaCreationTool.ini remembers your choices; "help" prints usage; "legacy" brings back the classic two-step dialogs
@@ -178,14 +181,17 @@ if "%MCT%%PRE%"=="" call :choices2 MCT "%VERSIONS%" %dV% "MCT Version" PRE "%PRE
 if %MCT%0 lss 1 if %PRE%0 gtr 1 call :choices MCT "%VERSIONS%" %dV% "MCT Version" 11 white 0x005a9e 320
 if %MCT%0 gtr 1 if %PRE%0 lss 1 call :choices PRE "%PRESETS%"  %dP% "MCT Preset"  11 white 0x005a9e 320
 if %MCT%0 gtr 1 if %PRE%0 lss 1 goto choice-0 = cancel
-set "CABSHA="
+set "CABSHA=" & set "XMLSHA="
 goto choice-%MCT%
 
 ::# a choice may set CABSHA to the sha256 of its products*.cab - dated catalogs never change once published, so DOWNLOAD
 ::# can discard a download that does not match. tests/pin-hashes.ps1 prints the values on a machine that can reach the urls.
 :choice-14
 set "VER=26200" & set "VID=11_25H2" & set "CB=26200.6899.251011-1532.25h2_ge_release_svc_refresh" & set "CT=2025/10/" & set "CC=2.1"
-set "CAB=FETCH_25H2"
+::# FE3 (FETCH_25H2_CAB) returns the newest catalog for any query - 26H2 (26300) since 2026-09-29 - so 25H2 uses a pinned
+::# catalog instead: products_11_25H2.xml next to the script, else the same file from this repo, checked against XMLSHA
+set "XML=https://raw.githubusercontent.com/jdggraaf/11_25H2-MediaCreationTool.bat/a8c151c97fbf3fa5e8e77a7f28ebadc315c2cb09/products_11_25H2.xml" & set "XMLSHA=8de94fa2e868588ad527315744d7b6bb43d6c088e04d8866c317295abb985704"
+if exist "%ROOT%\products_11_25H2.xml" set "XML=%ROOT%\products_11_25H2.xml"
 set "EXE=https://download.microsoft.com/download/0a8b07d9-a3bf-47b9-b71b-8e13354cec88/MediaCreationTool.exe"
 goto process ::# windows 11 25H2
 
@@ -437,7 +443,7 @@ echo;
 
 ::# download MCT and CAB / XML - new snippet to try via bits, net, certutil, and insecure/secure
 if defined EXE echo;%EXE% & call :DOWNLOAD "%EXE%" MediaCreationTool%VID%.exe
-if defined XML if exist "%XML%" (echo;%XML% & copy /y "%XML%" products.xml >nul 2>nul) else (echo;%XML% & call :DOWNLOAD "%XML%" products%VID%.xml)
+if defined XML if exist "%XML%" (echo;%XML% & copy /y "%XML%" products.xml >nul 2>nul) else (echo;%XML% & call :DOWNLOAD "%XML%" products%VID%.xml "" "%XMLSHA%")
 if defined CAB (
   if "%CAB%" equ "FETCH_25H2" (echo;Fetching 25H2 CAB from Microsoft & call :FETCH_25H2_CAB) else (echo;%CAB% & call :DOWNLOAD "%CAB%" products%VID%.cab "" "%CABSHA%")
 )
@@ -995,7 +1001,7 @@ function MakeISO ($dir,$iso,$label='DVD_ROM') {if (!(test-path -Path $dir -patht
 } #:MakeISO:#  export directory as (bootable) udf iso - lean and mean snippet by AveYo, 2022.03.15
 
 ::--------------------------------------------------------------------------------------------------------------------------------
-#:FETCH_25H2_CAB:#  [INTERNAL] Fetch 25H2 CAB from Microsoft Update Metadata Service
+#:FETCH_25H2_CAB:#  [INTERNAL] Fetch the current CAB from Microsoft Update Metadata Service - unused since FE3 moved to 26H2, kept for a 26H2 entry
 set ^ #=;$f0=[io.file]::ReadAllText($env:0); $0=($f0-split '#\:FETCH_25H2_CAB\:' ,3)[1]; $1=$env:1-replace'([`@$])','`$1'; iex($0+$1)
 set ^ #=& set "0=%~f0"& set 1=;FETCH_25H2_CAB %*& powershell -nop -c "%#%"& exit /b %errorcode%
 function FETCH_25H2_CAB {
